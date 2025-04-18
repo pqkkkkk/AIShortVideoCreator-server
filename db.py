@@ -2,7 +2,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from config import get_env_variable
 
-import image.model.Image as Image
+from image import Image
 import video_script.models as video_script_models
 
 async def init_db():
