@@ -1,4 +1,13 @@
-from ai import ai_service
+from storage import storage_service
+import os
 
-response = ai_service.get_response("Write a story about a magic backpack.")
-print(response)
+# with open("video1.mp4", "rb") as file:
+#     file_content = file.read()
+
+# secure_url, public_id = storage_service.uploadVideo(file_content)
+# print(f"Secure URL: {secure_url}")
+# print(f"Public ID: {public_id}")
+
+
+delete_result =  storage_service.delete("jez8ctrwrskhcowqzhse", isVideo=True)
+print(delete_result)

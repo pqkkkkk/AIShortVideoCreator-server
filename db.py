@@ -3,6 +3,7 @@ from beanie import init_beanie
 from config import get_env_variable
 
 from image import Image
+from user import User
 import video_script.models as video_script_models
 
 async def init_db():
@@ -11,5 +12,5 @@ async def init_db():
 
     client = AsyncIOMotorClient(data_source)
     db = client.get_database(database_name)
-    await init_beanie(database=db, document_models=[Image,video_script_models.Script,
+    await init_beanie(database=db, document_models=[Image, User,video_script_models.Script,
                                                     video_script_models.Voice])

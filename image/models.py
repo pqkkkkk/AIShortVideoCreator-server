@@ -2,9 +2,9 @@ from beanie import Document
 
 class Image(Document):
     id : str
-    imageUrl: str
+    image_url: str
     topic : str
-
+    public_id: str
     class Settings:
         collection = "image"
 

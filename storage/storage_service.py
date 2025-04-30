@@ -1,37 +1,54 @@
 import cloudinary
 from abc import ABC, abstractmethod
 
+import cloudinary.uploader
+from config import get_env_variable
 class storage_service(ABC):
     @abstractmethod
-    def upload(self, file_path: str, file_name: str) -> str:
+    def uploadImage(self, file_content):
         pass
     @abstractmethod
-    def download(self, file_name: str, destination_path: str) -> None:
+    def uploadVideo(self, file_content):
         pass
     @abstractmethod
     def delete(self, file_name: str) -> None:
-        pass
-    @abstractmethod
-    def get_media(self, fil_url: str) -> str:
         pass
 
 class cloudinary_storage_service(storage_service):
-    def __init__(self, cloud_name: str, api_key: str, api_secret: str):
+    def __init__(self):
         cloudinary.config(
-            cloud_name=cloud_name,
-            api_key=api_key,
-            api_secret=api_secret
+            cloud_name=get_env_variable("CLOUDINARY_CLOUD_NAME"),
+            api_key=get_env_variable("CLOUDINARY_API_KEY"),
+            api_secret=get_env_variable("CLOUDINARY_API_SECRET"),
         )
 
-    def upload(self, file_path: str, file_name: str) -> str:
-        response = cloudinary.uploader.upload(file_path, public_id=file_name)
-        return response['secure_url']
+    def uploadImage(self, file_content) -> str:
+        response =  cloudinary.uploader.upload(file_content)
+        print(response)
+        
+        if response['secure_url'] is None:
+            raise Exception("Upload failed, secure URL is None")
+        
+        return response['secure_url'], response['public_id']
+    
+    def uploadVideo(self, file_content):
+        response =  cloudinary.uploader.upload(file_content, resource_type="video")
 
-    def download(self, file_name: str, destination_path: str) -> None:
-        cloudinary.utils.download(file_name, destination_path)
-
-    def delete(self, file_name: str) -> None:
-        cloudinary.uploader.destroy(file_name)
-
-    def get_media(self, fil_url: str) -> str:
-        return cloudinary.CloudinaryImage(fil_url).build_url()
+        if response['secure_url'] is None:
+            raise Exception("Upload failed, secure URL is None")
+        
+        return response['secure_url'], response['public_id']
+    
+    def delete(self, public_id: str, isVideo: bool) -> str:
+        if isVideo:
+            response =  cloudinary.uploader.destroy(public_id, resource_type="video")
+            if response['result'] != 'ok':
+                raise Exception("Delete failed, result is not ok")
+            
+            return response['result']
+        else:
+            response =  cloudinary.uploader.destroy(public_id)
+            if response['result'] != 'ok':
+                raise Exception("Delete failed, result is not ok")
+            
+            return response['result']
