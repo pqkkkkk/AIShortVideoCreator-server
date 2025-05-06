@@ -1,4 +1,6 @@
 import cloudinary
+import cloudinary.uploader, cloudinary.utils
+
 from abc import ABC, abstractmethod
 
 import cloudinary.uploader
@@ -30,10 +32,12 @@ class cloudinary_storage_service(storage_service):
             raise Exception("Upload failed, secure URL is None")
         
         return response['secure_url'], response['public_id']
-    
+      
+    def delete(self, file_name: str) -> None:
+        cloudinary.uploader.destroy(file_name)
+        
     def uploadVideo(self, file_content):
         response =  cloudinary.uploader.upload(file_content, resource_type="video")
-
         if response['secure_url'] is None:
             raise Exception("Upload failed, secure URL is None")
         

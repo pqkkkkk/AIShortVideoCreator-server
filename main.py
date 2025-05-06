@@ -2,16 +2,22 @@ import uvicorn
 from fastapi import FastAPI
 from image import image_api
 from user import user_api
-from db import init_db
+from music_track import music_api
+from text_to_speech import tts_api
+from db import init_db 
+from contextlib import asynccontextmanager
 
-async def init_db_connection(app: FastAPI):
+@asynccontextmanager
+async def lifespan(app:FastAPI):
     await init_db()
     yield
-
-app = FastAPI(lifespan=init_db_connection)
+ 
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(image_api, prefix="/api/v1", tags=["image"])
 app.include_router(user_api, prefix="/api/v1", tags=["user"])
+app.include_router(music_api, prefix="/api/v1", tags=["music"])
+app.include_router(tts_api, prefix="/api/v1", tags=["tts"])
 
 @app.get("/")
 async def root():
