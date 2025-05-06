@@ -9,5 +9,5 @@ import os
 # print(f"Public ID: {public_id}")
 
 
-delete_result =  storage_service.delete("jez8ctrwrskhcowqzhse", isVideo=True)
+delete_result =  storage_service.delete("jez8ctrwrskhcowqzhse", is_video=True)
 print(delete_result)

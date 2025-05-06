@@ -3,7 +3,7 @@ import edge_tts
 from abc import ABC, abstractmethod
 from dotenv import load_dotenv
 from text_to_speech.models import Voice
-from storage.storage_service import cloudinary_storage_service
+from storage import storage_service
 from fastapi import HTTPException
 import os
 import tempfile
@@ -25,9 +25,7 @@ class gtts_service(tts_service):
 class edge_tts_service(tts_service):
     def __init__(self):
         super().__init__()
-        self.cloud = cloudinary_storage_service(os.getenv("CLOUDINARY_CLOUD_NAME"), 
-                                           os.getenv("CLOUDINARY_API_KEY"), 
-                                           os.getenv("CLOUDINARY_API_SECRET"))
+        self.cloud = storage_service
         self.dao = mongoTTS_dao()
 
     async def text_to_speech(self, scriptId, voiceId, lang: str = 'vi') -> str :

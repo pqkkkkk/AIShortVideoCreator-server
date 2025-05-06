@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dotenv import load_dotenv
 from pydub import AudioSegment
 import requests
-from storage.storage_service import cloudinary_storage_service
+from storage import storage_service
 from .dao.musicTrack_dao import  mongodb_musicTrackDao
 from io import BytesIO
 import tempfile
@@ -14,8 +14,7 @@ load_dotenv()
 class music_service(ABC):
     @abstractmethod
     def getTrack(self) -> List[Dict]:
-        pass
-    
+        pass   
     @abstractmethod
     def search_songs(self, keyword: str) -> List[Dict]:
         pass    
@@ -25,10 +24,7 @@ class music_service(ABC):
 
 class my_music_service(music_service): 
     def __init__(self):
-        self.cloud = cloudinary_storage_service(os.getenv("CLOUDINARY_CLOUD_NAME"), 
-                                           os.getenv("CLOUDINARY_API_KEY"), 
-                                           os.getenv("CLOUDINARY_API_SECRET"))
-        
+        self.cloud = storage_service
         self.dao = mongodb_musicTrackDao()
     
     async def getTrack(self) -> List[Dict]:
