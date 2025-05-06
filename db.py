@@ -14,5 +14,5 @@ async def init_db():
     client = AsyncIOMotorClient(data_source)
     db = client.get_database(database_name)
 
-    await init_beanie(database=db, document_models=[Image,video_script_models.Script, User
+    await init_beanie(database=db, document_models=[Image,video_script_models.Script, User,
                                                     video_script_models.Voice, MusicTrack, Voice])
