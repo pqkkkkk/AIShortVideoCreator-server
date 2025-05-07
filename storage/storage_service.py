@@ -25,7 +25,7 @@ class cloudinary_storage_service(storage_service):
             api_secret=get_env_variable("CLOUDINARY_API_SECRET"),
         )
 
-    def uploadImage(self, file_content) -> str:
+    async def uploadImage(self, file_content) -> str:
         response =  cloudinary.uploader.upload(file_content)
         print(response)
         
@@ -34,14 +34,14 @@ class cloudinary_storage_service(storage_service):
         
         return response['secure_url'], response['public_id']
               
-    def uploadVideo(self, file_content):
+    async def uploadVideo(self, file_content):
         response =  cloudinary.uploader.upload(file_content, resource_type="video")
         if response['secure_url'] is None:
             raise Exception("Upload failed, secure URL is None")
         
-        return response['secure_url'], response['public_id']
+        return response['secure_url']
     
-    def delete(self, public_id: str, is_video: bool) -> str:
+    async def delete(self, public_id: str, is_video: bool) -> str:
         if is_video:
             response =  cloudinary.uploader.destroy(public_id, resource_type="video")
             if response['result'] != 'ok':
