@@ -4,6 +4,7 @@ from config import get_env_variable
 
 from image import Image
 from user import User
+from video.models import Video
 from music_track.models import MusicTrack
 from video_script.models import Voice, Script
 async def init_db():
@@ -14,4 +15,4 @@ async def init_db():
     db = client.get_database(database_name)
 
     await init_beanie(database=db, document_models=[Image, Script, User,
-                                                    Voice, MusicTrack])
+                                                    Video, Voice, MusicTrack])

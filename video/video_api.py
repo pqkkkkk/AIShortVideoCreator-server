@@ -9,3 +9,11 @@ async def create_video(request: CreateVideoRequest):
     
     if result == "error":
         raise HTTPException(status_code=500, detail="Error creating video")
+@router.get("/video/{id}")
+async def get_video_by_id(id: str):
+    video = await video_service.get_video_by_id(id)
+    
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    return video

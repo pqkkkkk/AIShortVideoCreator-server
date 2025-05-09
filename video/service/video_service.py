@@ -4,12 +4,17 @@ from moviepy import (AudioFileClip, ColorClip,
                       CompositeVideoClip, TextClip)
 from video.dto.requests import CreateVideoRequest
 from abc import ABC, abstractmethod
+from video.models import Video
 import tempfile
 import os
 
 class video_service(ABC):
     @abstractmethod
     def create_video(request: CreateVideoRequest):
+        pass
+    def get_video_by_id(id: str):
+        pass
+    def get_all_videos():
         pass
 
 class video_service_v1(video_service):
@@ -27,12 +32,25 @@ class video_service_v1(video_service):
             temp_video_path = temp_video_file.name
             final.write_videofile(temp_video_path, codec="libx264", audio_codec="aac", fps=24)
 
-            secure_url= await storage_service.uploadVideo(temp_video_path)
-
+            secure_url ,public_id = await storage_service.uploadVideo(temp_video_path)
+        
             temp_video_file.close()
             os.remove(temp_video_path)
 
-            return secure_url
+            video = Video(
+                id=public_id,
+                title=request.title,
+                status="done",
+                video_url=secure_url,
+                userId=request.userId
+            )
+            await video.insert()
+
+            return secure_url, public_id
         except Exception as e:
             print(f"Error creating video: {e}")
-            return "error"
+            return "error", "error"
+    async def get_video_by_id(self,id):
+        return await Video.get(id)
+    async def get_all_videos(self):
+        return await Video.all().to_list()

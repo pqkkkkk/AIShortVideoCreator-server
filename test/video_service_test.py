@@ -1,6 +1,7 @@
 from video.service import video_service
 from video.dto.requests import CreateVideoRequest
 import asyncio
+from db import init_db
 
 request = CreateVideoRequest(
     script=(
@@ -20,13 +21,19 @@ request = CreateVideoRequest(
         "nơi mỗi học sinh đều có cơ hội phát triển toàn diện.\n" +
         "Liệu chúng ta có đủ dũng cảm để lựa chọn con đường thứ hai?\n"
     ),
-    title="Giáo dục Việt Nam: Áp lực hay cơ hội?"
+    title="Giáo dục Việt Nam: Áp lực hay cơ hội?",
+    userId="pqkiet854"
 )
 
+async def main():
+    await init_db()
+    await test_create_video()
+
 async def test_create_video():
-    secure_url= await video_service.create_video(request)
+    secure_url, public_id = await video_service.create_video(request)
     print("Video created successfully")
     print(f"Video path: {secure_url}")
+    print(f"Video ID: {public_id}")
 
 if __name__ == "__main__":
-    asyncio.run(test_create_video())
+    asyncio.run(main())
