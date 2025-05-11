@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from text_to_speech.models import Voice
+from video_script.models import Voice, Script
 from bson import ObjectId
-class tts_dao(ABC):
+class video_script_dao(ABC):
     @abstractmethod
     def getAllSampleVoice():
         pass
@@ -9,10 +9,8 @@ class tts_dao(ABC):
         pass
     def saveVoice(self, voice: Voice):
         pass
-
-
-    
-class mongoTTS_dao(tts_dao):
+   
+class mongo_video_script_dao(video_script_dao):
     async def getAllSampleVoice(self):
         try:
             results = await Voice.find(Voice.type == "sample").to_list()

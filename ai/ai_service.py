@@ -15,8 +15,8 @@ class gemini_service(ai_service):
         genai.configure(api_key=self.api_key)
         self.client = genai.GenerativeModel("gemini-2.0-flash")
 
-    def get_response(self, prompt: str) -> str:
-        response = self.client.generate_content(prompt)
+    async def get_response(self, prompt: str) -> str:
+        response = await self.client.generate_content_async(prompt)
         return response.text if response else None
 
     def get_response_stream(self, prompt: str) -> str:
