@@ -11,7 +11,7 @@ router = APIRouter()
 async def getExampleVoice():
     return await video_script_service.getAllSampleVoiceList()
 
-@router.get("/video_script")
+@router.post("/video_script")
 async def AutoGenerateVideoScript(request: AutoGenerateScriptRequest):
     response = await video_script_service.generateTextScript(request=request)
     if response:

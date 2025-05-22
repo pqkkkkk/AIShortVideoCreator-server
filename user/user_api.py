@@ -20,5 +20,7 @@ async def sign_up(signUpRequest: SignUpRequest):
 
     if sign_up_result == SIgnUpResult.SUCCESS:
         return SignUpResponse(message="Sign up successful", status=sign_up_result, username=signUpRequest.username)
-    else:
+    elif sign_up_result == SIgnUpResult.UNKNOWN_ERROR:
         raise HTTPException(status_code=400, detail=sign_up_result.value)
+    else:
+        return SignUpResponse(message=sign_up_result.value, status=sign_up_result, username=signUpRequest.username)
