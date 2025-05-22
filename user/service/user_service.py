@@ -33,6 +33,9 @@ class user_service_v1(user_service):
             if same_user:
                 return SIgnUpResult.USERNAME_EXISTS
             
+            if signUpRequest.password != signUpRequest.confirmPassword:
+                return SIgnUpResult.PASSWORD_MISMATCH
+            
             hashed_password = bcrypt.hashpw(signUpRequest.password.encode('utf-8'), bcrypt.gensalt())
             user = User(username=signUpRequest.username, password=hashed_password.decode('utf-8'))
             await user_dao.create_user(user)

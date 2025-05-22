@@ -8,4 +8,5 @@ class SignInResult(Enum):
 class SIgnUpResult(Enum):
     SUCCESS = "success"
     USERNAME_EXISTS = "Username already exists"
-    UNKNOWN_ERROR = "Unknown error"
+    UNKNOWN_ERROR = "Unknown error",
+    PASSWORD_MISMATCH = "Password mismatch"

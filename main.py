@@ -7,6 +7,7 @@ from video_script import video_script_api
 from video import video_api
 from db import init_db 
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -21,6 +22,13 @@ app.include_router(music_api, prefix="/api/v1", tags=["music"])
 app.include_router(video_script_api, prefix="/api/v1", tags=["video_script"])
 app.include_router(video_api, prefix="/api/v1", tags=["video"])
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
