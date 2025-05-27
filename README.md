@@ -43,7 +43,7 @@ AIShortVideoCreator-server is a FastAPI-based backend service for generating, ed
 
 1. **Clone the repository:**
     ```sh
-    git clone <https://github.com/pqkkkkk/AIShortVideoCreator-server.git>
+    git clone https://github.com/pqkkkkk/AIShortVideoCreator-server.git
     cd AIShortVideoCreator-server
     ```
 
