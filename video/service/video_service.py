@@ -1,13 +1,14 @@
 from storage import storage_service
 from text_to_speech import tts_service
+from ai import ai_service
 from moviepy import (AudioFileClip, ColorClip,
                       CompositeVideoClip, TextClip)
 from video.dto.requests import CreateVideoRequest
 from abc import ABC, abstractmethod
-from video.models import Video
+from video.models import Video, VideoMetadata, Scene
 import tempfile
 import os
-
+import json
 class video_service(ABC):
     @abstractmethod
     def create_video(request: CreateVideoRequest):
