@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from image.service import image_service
 class public_image_service(ABC):
     @abstractmethod
     async def upload_image(self, image: bytes) -> str:
@@ -19,6 +20,11 @@ class public_image_service(ABC):
         """
         Retrieves an image given its URL.
         """
+    @abstractmethod
+    async def get_image_from_ai(self, prompt: str) -> str:
+        """
+        Generates an image based on a prompt using AI.
+        """
         pass
 
 class public_image_service_v1(public_image_service):
@@ -36,3 +42,6 @@ class public_image_service_v1(public_image_service):
     def get_image(self, url: str) -> bytes:
         # Implementation for retrieving an image
         pass
+    async def get_image_from_ai(self, prompt: str) -> str:
+        image_url = await image_service.get_image_from_ai(prompt)
+        return image_url
