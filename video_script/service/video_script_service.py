@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from text_to_speech import tts_service
 from ai import ai_service
 from video_script.dto.requests import AutoGenerateScriptRequest
-from models import VideoMetadata
+from video_script.models import VideoMetadata
 import json
 
 class video_script_service(ABC):

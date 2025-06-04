@@ -1,0 +1,26 @@
+{
+    "script": "",
+    "title": "Video Title",
+    "userId": "pqkiet854",
+    "videoMetadata":{
+        "scenes":
+            [
+                {
+                    "scene_id": 1,
+                    "start_time": 0,
+                    "end_time": 10,
+                    "text": "Từ những ước mơ khoa học viễn tưởng xa xôi, Trí tuệ nhân tạo, hay AI, đã và đang có một hành trình phát triển đầy ngoạn mục. Từng bước một, chúng ta đã chứng kiến những khái niệm trừu tượng dần trở thành hiện thực.",
+                    "background_image": "",
+                    "background_music": ""
+                },
+                {
+                    "scene_id": 2,
+                    "start_time": 10,
+                    "end_time": 30,
+                    "text": "Ban đầu, AI tập trung vào việc mô phỏng tư duy logic và giải quyết các bài toán cụ thể. Rồi đến những năm 2000, sự bùng nổ của dữ liệu lớn và sức mạnh tính toán đã mở ra một kỷ nguyên mới: kỷ nguyên của Học máy (Machine Learning). AI bắt đầu học hỏi từ hàng núi dữ liệu, nhận diện mẫu và đưa ra dự đoán với độ chính xác đáng kinh ngạc",
+                    "background_image": "",
+                    "background_music": ""
+                }
+            ]
+    }
+}
