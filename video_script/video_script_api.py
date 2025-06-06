@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from video_script.service import video_script_service
 from .models import Voice
 from typing import List
-from video_script.dto.requests import AutoGenerateScriptRequest
+from video_script.dto.requests import AutoGenerateScriptRequest, GetVideoMetadataRequest
+from video_script.dto.responses import GetVideoMetadataResponse
 import markdown2
 from bs4 import BeautifulSoup
 router = APIRouter()
@@ -20,8 +21,14 @@ async def AutoGenerateVideoScript(request: AutoGenerateScriptRequest):
         plain_text = soup.get_text()
         return {"message": "success", "data": plain_text}
     else:
-        return {"message": "error", "data": None}
-
+        raise HTTPException(status_code=500, detail="Failed to generate script")
+@router.post("/video_script/video_metadata")
+async def GetVideoMetadata(request: GetVideoMetadataRequest):
+    video_metadata = await video_script_service.get_video_metadata(request.script)
+    if video_metadata:
+        return GetVideoMetadataResponse(message="success", data=video_metadata)
+    else:
+        return GetVideoMetadataResponse(message="error", data=None)
 @router.get('/video_script/getVoice/{id}', response_model=Voice)
 async def getVoice(id):
     return await video_script_service.getVoice(id=id)

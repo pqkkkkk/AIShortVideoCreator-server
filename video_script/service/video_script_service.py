@@ -8,6 +8,7 @@ from ai import ai_service
 from video_script.dto.requests import AutoGenerateScriptRequest
 from video_script.models import VideoMetadata
 import json
+import asyncio
 
 class video_script_service(ABC):
     @abstractmethod
@@ -33,7 +34,14 @@ class video_script_service(ABC):
 class video_script_service_v1(video_script_service):
     async def generateTextScript(self, request: AutoGenerateScriptRequest):
         try:
-            text_script = await ai_service.get_response(request.prompt)
+            prompt = f"""
+            Bạn là một trợ lý AI chuyên nghiệp có khả năng tạo kịch bản video dựa trên nội dung và thời gian video.
+            Hãy tạo một kịch bản video cho nội dung sau:
+            Nội dung: {request.content}
+            Thời gian video: {request.video_duration} giây"""
+            #text_script = await ai_service.get_response(prompt)
+            text_script = await asyncio.to_thread(ai_service.get_response, prompt)
+
             return text_script
         except Exception as e:
             print(f"Error: {e}")
@@ -85,7 +93,7 @@ class video_script_service_v1(video_script_service):
             {script}
         """
         return prompt
-    async def get_json_content_from_response(self, response_text: str) -> dict:
+    def get_json_content_from_response(self, response_text: str) -> dict:
         try:
             if not response_text:
                 raise ValueError("Response is empty or None")
@@ -105,9 +113,9 @@ class video_script_service_v1(video_script_service):
     async def get_video_metadata(self, script: str) -> VideoMetadata:
         try:
             prompt = self.create_prompt_to_convert_script_to_object(script)
-            response_text = await ai_service.get_response(prompt)
+            response_text = await asyncio.to_thread(ai_service.get_response, prompt)
             
-            video_metadata_json = await self.get_json_content_from_response(response_text)
+            video_metadata_json = self.get_json_content_from_response(response_text)
             if not video_metadata_json:
                 raise ValueError("Parsed video metadata is empty or invalid")
             
