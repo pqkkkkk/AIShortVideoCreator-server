@@ -8,12 +8,14 @@ api_router = APIRouter()
 
 @api_router.post("/user/signin")
 async def sign_in(signInRequest : SignInRequest):
-    sign_in_result = await user_service.sign_in(signInRequest.username, signInRequest.password)
+    sign_in_response = await user_service.sign_in(signInRequest.username, signInRequest.password)
 
-    if sign_in_result == SignInResult.SUCCESS:
-        return SignInResponse(message="Sign in successful", access_token="your_access_token", status=sign_in_result)
+    if sign_in_response.status == SignInResult.SUCCESS:
+        return sign_in_response
     else:
-        raise HTTPException(status_code=400, detail=sign_in_result.value)
+        raise HTTPException(status_code=400, detail=sign_in_response.status.value)
+    
+
 @api_router.post("/user")
 async def sign_up(signUpRequest: SignUpRequest):
     sign_up_result = await user_service.sign_up(signUpRequest=signUpRequest)
