@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Form, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer
 from video.dto.requests import CreateVideoRequest
+from video.dto.resposes import CreateVideoResponse
 from video.service import video_service
 import json
 from auth import auth_service
@@ -26,8 +27,8 @@ def validate_token(token: str = Depends(oauth2_scheme)):
 async def create_video(
     token: str = Depends(validate_token),
     video_metaData_json: str = Form(...),
-    background_images: list[UploadFile] = File(...),
-    background_musics: list[UploadFile] = File(...)
+    background_images: list[UploadFile] = File(default=[]),
+    background_musics: list[UploadFile] = File(default=[])
     ):
     try:
         secure_url = "error"
@@ -39,6 +40,12 @@ async def create_video(
         )
         if secure_url == "error":
             raise HTTPException(status_code=500, detail="Error creating video")
+        
+        return CreateVideoResponse(
+            public_id=public_id,
+            secure_url=secure_url,
+            message="Video created successfully"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 @router.get("/video/{id}")

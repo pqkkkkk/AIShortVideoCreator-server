@@ -33,39 +33,59 @@ class video_service_v2(video_service):
 
             scene_clip = background_component.with_audio(audio_component)
 
-            #audio_component.close()
-            return scene_clip
+            return scene_clip, audio_component, background_component, audio_path
         except Exception as e:
             print(f"Error handling scene {scene.scene_id}: {e}")
-            return None
+            return None, None, None, None
     
+
     async def create_video(self, request : CreateVideoRequest, background_images, background_musics):
         try:
             scene_clips = []
-            for i in enumerate(request.videoMetadata.scenes):
-                scene_clip = await self.handle_each_scene(i[1], 
-                    background_images[i[0]] if i[0] < len(background_images) else None, 
-                    background_musics[i[0]] if i[0] < len(background_musics) else None
+            resources_to_close = []
+
+            for i, scene in enumerate(request.videoMetadata.scenes):
+                scene_clip, audio_component, background_component, audio_path = await self.handle_each_scene(
+                scene,
+                background_images[i] if i < len(background_images) else None,
+                background_musics[i] if i < len(background_musics) else None
                 )
+
                 if scene_clip is None:
                     return "error", "error"
+                
                 scene_clips.append(scene_clip)
-            
+                resources_to_close.append((audio_component, background_component, audio_path))
+  
             video = concatenate_videoclips(scene_clips, method="compose")
             
             temp_video_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
             temp_video_path = temp_video_file.name
+
             video.write_videofile(temp_video_path, codec="libx264", audio_codec="aac", fps=24)
             secure_url ,public_id = await storage_service.uploadVideo(temp_video_path)
+
             temp_video_file.close()
             os.remove(temp_video_path)
+
+            for audio, bg, audio_path in resources_to_close:
+                if audio:
+                    audio.close()
+                if bg:
+                    bg.close()
+                if audio_path:
+                    os.remove(audio_path)
 
             return secure_url, public_id
         except Exception as e:
             print(f"Error creating video: {e}")
             return "error", "error"
+        
+        
     async def get_video_by_id(self,id):
         return await Video.get(id)
+    
+
     async def get_all_videos(self):
         return await Video.all().to_list()
 class video_service_v1(video_service):
