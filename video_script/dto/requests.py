@@ -1,4 +1,8 @@
 from pydantic import BaseModel
 
 class AutoGenerateScriptRequest(BaseModel):
-    prompt: str
+    video_duration: int
+    content: str
+
+class GetVideoMetadataRequest(BaseModel):
+    script: str

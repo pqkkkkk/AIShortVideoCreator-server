@@ -3,30 +3,42 @@ from user.dao import user_dao
 from user.models import User
 from user.result_status import SignInResult, SIgnUpResult
 from user.dto.requests import SignInRequest, SignUpRequest
+from user.dto.responses import SignInResponse, SignUpResponse
 import traceback
 import bcrypt
+from auth import auth_service
 
 class user_service(ABC):
     @abstractmethod
-    async def sign_in(self, username: str, password: str) -> SignInResult:
+    async def sign_in(self, username: str, password: str) -> SignInResponse:
         pass
     async def sign_up(self, username: str, password: str) -> SIgnUpResult:
         pass
 class user_service_v1(user_service):
-    async def sign_in(self, username: str, password: str) -> SignInResult:
+    async def sign_in(self, username: str, password: str) -> SignInResponse:
         try:
             user = await user_dao.get_user(username)
 
             if not user:
-                return SignInResult.USER_NOT_FOUND
+                return SignInResponse(status=SignInResult.USER_NOT_FOUND,
+                                       message="User not found",
+                                        access_token="")
             elif not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-                return SignInResult.WRONG_PASSWORD
+                return SignInResponse(status=SignInResult.INVALID_PASSWORD,
+                                       message="Invalid password",
+                                       access_token="")
             else:
-                return SignInResult.SUCCESS
+                token = auth_service.create_access_token(data={"sub": user.username})
+                return SignInResponse(status=SignInResult.SUCCESS,
+                                       message="Sign in successful",
+                                       access_token=token)
         except Exception as e:
             print(f"Error during sign in: {e}")
-            traceback.print_exc()
-            return SignInResult.UNKNOWN_ERROR
+            return SignInResponse(status=SignInResult.UNKNOWN_ERROR,
+                                   message="An unknown error occurred",
+                                   access_token="")
+        
+        
     async def sign_up(self, signUpRequest: SignUpRequest) -> SIgnUpResult:
         try:
             same_user = await user_dao.get_user(signUpRequest.username)

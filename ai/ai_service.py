@@ -20,8 +20,8 @@ class gemini_service(ai_service):
         self.api_key = get_env_variable("GEMINI_API_KEY")
         self.client = genai.Client(api_key=self.api_key)
 
-    async def get_response(self, prompt: str) -> str:
-        response = await self.client.models.generate_content(
+    def get_response(self, prompt: str) -> str:
+        response = self.client.models.generate_content(
             model="gemini-2.0-flash",
             contents=prompt
         )

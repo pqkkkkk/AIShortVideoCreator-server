@@ -1,6 +1,6 @@
-from service import video_script_service
+from video_script.service import video_script_service
 from abc import ABC, abstractmethod
-from models import VideoMetadata
+from video_script.models import VideoMetadata
 
 class public_video_script_service(ABC):
     @abstractmethod
