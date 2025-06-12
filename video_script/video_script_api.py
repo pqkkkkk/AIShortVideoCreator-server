@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.security import OAuth2PasswordBearer
 from video_script.service import video_script_service
 from .models import Voice
@@ -25,9 +25,13 @@ def validate_token(token: str = Depends(oauth2_scheme)):
     else:
         raise HTTPException(status_code=500, detail="Error validating token")
 
-@router.get("/video_script/voiceSample", response_model=List[Voice])
-async def getExampleVoice():
-    return await video_script_service.getAllSampleVoiceList()
+@router.get("/video_script/voice", response_model=List[Voice])
+async def GetVoices(gender: str = Query(default="")):
+    return await video_script_service.getAllVoices(gender=gender)
+
+@router.get('/video_script/voice/{id}', response_model=Voice)
+async def getVoice(id):
+    return await video_script_service.getVoiceById(id=id)
 
 @router.post("/video_script")
 async def AutoGenerateVideoScript(request: AutoGenerateScriptRequest, token: str = Depends(validate_token)):
@@ -47,6 +51,3 @@ async def GetVideoMetadata(request: GetVideoMetadataRequest, token: str = Depend
         return GetVideoMetadataResponse(message="success", data=video_metadata)
     else:
         return GetVideoMetadataResponse(message="error", data=None)
-@router.get('/video_script/getVoice/{id}', response_model=Voice)
-async def getVoice(id):
-    return await video_script_service.getVoice(id=id)

@@ -39,7 +39,6 @@ class cloudinary_storage_service(storage_service):
         if response['secure_url'] is None:
             raise Exception("Upload failed, secure URL is None")
         
-        print(response)
         return response['secure_url'], response['public_id']
     
     async def delete(self, public_id: str, is_video: bool) -> str:

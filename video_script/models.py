@@ -13,12 +13,12 @@ class Script(Document):
             }
         }
 class Voice(Document):
-    type: str
-    voiceUrl: str
-    shortName: str
+    gender: str
+    sampleVoiceUrl: str
+    voiceId: str
     publicId: str
     class Settings:
-        name = "voice"
+        collection = "Voice"
 class Scene(BaseModel):
     scene_id: int
     start_time: float
