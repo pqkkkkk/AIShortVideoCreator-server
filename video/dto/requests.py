@@ -4,4 +4,5 @@ class CreateVideoRequest(BaseModel):
     script: str
     title: str
     userId: str
+    voiceId: str
     videoMetadata: VideoMetadata

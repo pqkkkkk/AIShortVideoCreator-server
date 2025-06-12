@@ -25,7 +25,7 @@ def validate_token(token: str = Depends(oauth2_scheme)):
 
 @router.post("/video")
 async def create_video(
-    token: str = Depends(validate_token),
+    #token: str = Depends(validate_token),
     video_metaData_json: str = Form(...),
     background_images: list[UploadFile] = File(default=[]),
     background_musics: list[UploadFile] = File(default=[])

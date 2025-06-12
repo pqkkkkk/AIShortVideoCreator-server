@@ -24,7 +24,7 @@ class gtts_service(tts_service):
         print(f"Audio saved as output.mp3")
 
 class edge_tts_service(tts_service):
-    async def text_to_speech(self, text, voiceId, lang: str = 'vi') -> str :
+    async def text_to_speech(self, text, voiceId: str = 'vi-VN-HoaiMyNeural', lang: str = 'vi') -> str :
         # voice = await self.dao.getVoice(id=voiceId)
         # if voice is None:
         #     raise HTTPException(status_code=404, detail="Voice not found")
