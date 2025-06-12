@@ -9,7 +9,7 @@ class musicTrackDao(ABC):
     async def get_music_track(self, track_id: str) -> Optional[MusicTrack]:
         pass
     
-    def saveMusicTrack(self ,musicTrack: CutMusic):
+    def InsertMusicTrack(self ,musicTrack: CutMusic):
         pass
     
     def getAllTrack(self):
@@ -27,13 +27,8 @@ class mongodb_musicTrackDao(musicTrackDao):
             return None
         
         
-    async def saveMusicTrack(self, musicTrack: CutMusic) -> bool:
-        try:    
-            await musicTrack.insert()
-            return True
-        except Exception as e:
-            print("error: e")    
-        return False
+    async def InsertMusicTrack(self, musicTrack: MusicTrack):
+        await MusicTrack.insert_one(musicTrack)
     
     async def getAllTrack(self):
         tracks = await MusicTrack.find_all().to_list()

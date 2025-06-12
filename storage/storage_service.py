@@ -14,6 +14,9 @@ class storage_service(ABC):
     def uploadVideo(self, file_content):
         pass
     @abstractmethod
+    def uploadVideoWithReturningDuration(self, file_content):
+        pass
+    @abstractmethod
     def delete(self, public_id : str, is_video : bool) -> str:
         pass
 
@@ -40,6 +43,14 @@ class cloudinary_storage_service(storage_service):
             raise Exception("Upload failed, secure URL is None")
         
         return response['secure_url'], response['public_id']
+    
+
+    async def uploadVideoWithReturningDuration(self, file_content):
+        response =  cloudinary.uploader.upload(file_content, resource_type="video")
+        if response['secure_url'] is None:
+            raise Exception("Upload failed, secure URL is None")
+        
+        return response['secure_url'], response['public_id'], response['duration']
     
     async def delete(self, public_id: str, is_video: bool) -> str:
         if is_video:
