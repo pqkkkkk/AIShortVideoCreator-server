@@ -8,6 +8,7 @@ class Video(Document):
     video_url: str
     #created_at: str
     userId: str
+    duration: float
     class Settings:
         collection = "video"
 class Scene(BaseModel):

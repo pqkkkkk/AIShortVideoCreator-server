@@ -71,6 +71,11 @@ class my_music_service(music_service):
         
     async def GetTracks(self) -> List[Dict]:
         return await self.dao.getAllTrack()
+    async def get_music_track_by_id(self, publicId: str) -> MusicTrack:
+        music = await self.dao.get_music_track_by_id(publicId)
+        if music is None:
+            raise Exception("Music track not found")
+        return music
     
 
     async def search_songs(self, keyword: str) -> List[Dict]:
@@ -78,7 +83,7 @@ class my_music_service(music_service):
     
     
     async def cutMusicTrack(self, musicId, startTime, endTime):
-        music = await self.dao.get_music_track(musicId)
+        music = await self.dao.get_music_track_by_id(musicId)
         resp = requests.get(music.musicUrl)
         if resp.status_code != 200:
             raise Exception(f"Không thể tải file từ {music.musicUrl}")

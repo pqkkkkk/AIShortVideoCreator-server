@@ -25,27 +25,22 @@ def validate_token(token: str = Depends(oauth2_scheme)):
 
 @router.post("/video")
 async def create_video(
-    #token: str = Depends(validate_token),
+    token: str = Depends(validate_token),
     video_metaData_json: str = Form(...),
     background_images: list[UploadFile] = File(default=[]),
     background_musics: list[UploadFile] = File(default=[])
     ):
     try:
-        secure_url = "error"
         video_metadata = CreateVideoRequest(**json.loads(video_metaData_json))
-        secure_url, public_id = await video_service.create_video(
+        response = await video_service.create_video(
             video_metadata, 
             background_images, 
             background_musics
         )
-        if secure_url == "error":
+        if response.secure_url == "":
             raise HTTPException(status_code=500, detail="Error creating video")
         
-        return CreateVideoResponse(
-            public_id=public_id,
-            secure_url=secure_url,
-            message="Video created successfully"
-        )
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 @router.get("/video/{id}")
