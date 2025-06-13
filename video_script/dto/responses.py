@@ -1,9 +1,14 @@
 from video_script.models import VideoMetadata
+from pydantic import BaseModel
+from video_script.result_status import AutoGenerateTextScriptResult, ConvertToVideoMetadataResult
 
-class GetVideoMetadataResponse:
+
+class GetVideoMetadataResponse(BaseModel):
     message: str
+    result: ConvertToVideoMetadataResult
     data: VideoMetadata | None
 
-    def __init__(self, message: str, data: VideoMetadata | None):
-        self.message = message
-        self.data = data
+class AutoGenerateTextScriptResponse(BaseModel):
+    message: str
+    result: AutoGenerateTextScriptResult
+    data: str | None

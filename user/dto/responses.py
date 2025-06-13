@@ -5,6 +5,7 @@ class SignInResponse(BaseModel):
     access_token: str
     status: SignInResult
     message: str
+    username: str
 class SignUpResponse(BaseModel):
     message: str
     status: SIgnUpResult

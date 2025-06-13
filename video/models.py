@@ -1,7 +1,7 @@
 from beanie import Document
 from pydantic import BaseModel
 class Video(Document):
-    id: str
+    public_id: str
     title: str
     #topic: str
     status: str

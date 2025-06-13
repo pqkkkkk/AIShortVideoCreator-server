@@ -7,6 +7,7 @@ from moviepy import (AudioFileClip, ColorClip, ImageClip,
 from moviepy import concatenate_videoclips
 from video.dto.requests import CreateVideoRequest
 from video.dto.resposes import CreateVideoResponse
+from video.dao import video_dao
 from abc import ABC, abstractmethod
 from video.models import Video, VideoMetadata, Scene
 from music_track import music_service
@@ -16,6 +17,9 @@ from fastapi import UploadFile
 import requests
 
 class video_service(ABC):
+    @abstractmethod
+    def insert_video(video: Video):
+        pass
     @abstractmethod
     def create_video(request: CreateVideoRequest):
         pass
@@ -153,6 +157,16 @@ class video_service_v2(video_service):
             for path in all_temp_paths:
                 if os.path.exists(path): os.remove(path)
             
+            video_data = Video(
+                public_id=public_id,
+                title=request.title,
+                status="done",
+                video_url=secure_url,
+                userId=request.userId,
+                duration=final_video.duration
+            )
+            await self.insert_video(video_data)
+
             return CreateVideoResponse(
                 public_id=public_id,
                 secure_url=secure_url,
@@ -166,13 +180,16 @@ class video_service_v2(video_service):
                 message= "error creating video"
             )
         
-        
+    async def insert_video(self, video: Video):
+        await video_dao.insert_video(video)
+
+
     async def get_video_by_id(self,id):
-        return await Video.get(id)
+        return await video_dao.get_video_by_id(id)
     
 
     async def get_all_videos(self):
-        return await Video.all().to_list()
+        return await video_dao.get_all_videos()
 class video_service_v1(video_service):
     async def create_video(self,request: CreateVideoRequest):
         try:
@@ -194,7 +211,7 @@ class video_service_v1(video_service):
             os.remove(temp_video_path)
 
             video = Video(
-                id=public_id,
+                public_id=public_id,
                 title=request.title,
                 status="done",
                 video_url=secure_url,

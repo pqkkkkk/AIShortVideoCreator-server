@@ -50,3 +50,7 @@ async def get_video_by_id(id: str,
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     return video
+@router.get("/video")
+async def get_all_videos(token: str = Depends(validate_token)):
+    videos = await video_service.get_all_videos()
+    return videos

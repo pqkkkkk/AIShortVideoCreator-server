@@ -5,7 +5,9 @@ from storage import storage_service
 from fastapi import HTTPException
 from text_to_speech import tts_service
 from ai import ai_service
+from video_script.dto.responses import GetVideoMetadataResponse, AutoGenerateTextScriptResponse
 from video_script.dto.requests import AutoGenerateScriptRequest
+from video_script.result_status import AutoGenerateTextScriptResult, ConvertToVideoMetadataResult
 from video_script.models import VideoMetadata
 import json
 import asyncio
@@ -39,10 +41,18 @@ class video_script_service_v1(video_script_service):
             #text_script = await ai_service.get_response(prompt)
             text_script = await asyncio.to_thread(ai_service.get_response, prompt)
 
-            return text_script
+            return AutoGenerateTextScriptResponse(
+                message = AutoGenerateTextScriptResult.SUCCESS.value,
+                result= AutoGenerateTextScriptResult.SUCCESS,
+                data=text_script
+            )
         except Exception as e:
             print(f"Error: {e}")
-            return None
+            return AutoGenerateTextScriptResponse(
+                message = AutoGenerateTextScriptResult.SERVER_BUSY.value,
+                result= AutoGenerateTextScriptResult.SERVER_BUSY,
+                data=None
+            )
     async def getAllVoices(self, gender: str):
         try:
             results = await video_script_dao.GetAllVoices(gender=gender)
@@ -126,7 +136,7 @@ class video_script_service_v1(video_script_service):
         except Exception as e:
             print(f"Error parsing JSON content: {e}")
             return {}
-    async def get_video_metadata(self, script: str) -> VideoMetadata:
+    async def get_video_metadata(self, script: str) -> GetVideoMetadataResponse:
         try:
             prompt = self.create_prompt_to_convert_script_to_object(script)
             response_text = await asyncio.to_thread(ai_service.get_response, prompt)
@@ -136,7 +146,15 @@ class video_script_service_v1(video_script_service):
                 raise ValueError("Parsed video metadata is empty or invalid")
             
             video_metadata = VideoMetadata(**video_metadata_json)
-            return video_metadata
+            return GetVideoMetadataResponse(
+                message=ConvertToVideoMetadataResult.SUCCESS.value,
+                result=ConvertToVideoMetadataResult.SUCCESS,
+                data=video_metadata
+            )
         except Exception as e:
             print(f"Error getting video metadata: {e}")
-            return None
+            return GetVideoMetadataResponse(
+                message=ConvertToVideoMetadataResult.SERVER_BUSY.value,
+                result=ConvertToVideoMetadataResult.SERVER_BUSY,
+                data=None
+            )
