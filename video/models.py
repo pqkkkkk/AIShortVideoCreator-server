@@ -1,5 +1,6 @@
 from beanie import Document
 from pydantic import BaseModel
+
 class Video(Document):
     public_id: str
     title: str
@@ -11,6 +12,8 @@ class Video(Document):
     duration: float
     class Settings:
         collection = "video"
+
+
 class Scene(BaseModel):
     scene_id: int
     start_time: float
@@ -20,5 +23,27 @@ class Scene(BaseModel):
     bg_music_public_id: str
     bg_image_file_index: int
     bg_music_file_index: int
+
+
 class VideoMetadata(BaseModel):
     scenes: list[Scene]
+
+class Position(BaseModel):
+    x: float
+    y: float
+
+class TextAttachment(BaseModel):
+    text: str
+    start_time: float
+    end_time: float
+    font_size: int = 24
+    color_hex: str = "#FFFFFF"
+    position: Position
+
+class EmojiAttachment(BaseModel):
+    emoji: str
+    start_time: float
+    end_time: float
+    codepoint: str
+    position: Position
+    size: int

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Form, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer
-from video.dto.requests import CreateVideoRequest
-from video.dto.resposes import CreateVideoResponse
+from video.dto.requests import CreateVideoRequest, EditVideoRequest
+from video.dto.resposes import CreateVideoResponse, EditVideoResponse
 from video.service import video_service
 import json
 from auth import auth_service
@@ -43,13 +43,29 @@ async def create_video(
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.put("/video/{id}",response_model=EditVideoResponse)
+async def edit_video(request: EditVideoRequest,
+                     #token: str = Depends(validate_token)
+                     ):
+    response = await video_service.edit_video(request)
+    if response.secure_url == "":
+        raise HTTPException(status_code=500, detail="Error editing video")
+    
+    return response
+
+
 @router.get("/video/{id}")
 async def get_video_by_id(id: str,
-                          token: str = Depends(validate_token)):
+                          #token: str = Depends(validate_token)
+                          ):
     video = await video_service.get_video_by_id(id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     return video
+
+
 @router.get("/video")
 async def get_all_videos(token: str = Depends(validate_token)):
     videos = await video_service.get_all_videos()

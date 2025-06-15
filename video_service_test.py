@@ -1,5 +1,6 @@
 from video.service import video_service
 from video.dto.requests import CreateVideoRequest
+from video.models import TextAttachment, Position, EmojiAttachment
 import asyncio
 import os
 from db import init_db
@@ -65,5 +66,37 @@ async def get_corresponding_bg_music_temp_path_test():
             print(f"Temporary file {bg_music_temp_path} removed successfully.")
     except Exception as e:
         print(f"Error retrieving background music temp path: {e}")
+async def test_handle_each_text_attachment():
+    try:
+        text_attachment = TextAttachment(
+            text =  "Duis reprehenderit nulla ad",
+            start_time =  4,
+            end_time = 6,
+            position = Position(x=0.5, y=0.5),
+            font_size=  24,
+            color_hex =  "#FFFFFF"
+        )
+        text_clip = await video_service.handle_each_text_attachment(text_attachment=text_attachment)
+        if text_clip:
+            text_clip.close()
+        print("Text attachment processed successfully.")
+    except Exception as e:
+        print(f"Error processing text attachment: {e}")
+async def test_handle_each_emoji_attachment():
+    try:
+        emoji_attachment = EmojiAttachment(
+            emoji= "",
+            codepoint="1f600",  
+            start_time = 2,
+            end_time = 4,
+            position = Position(x=0.5, y=0.5),
+            size = 50
+        )
+        emoji_clip = await video_service.handle_each_emoji_attachment(emoji_attachment=emoji_attachment)
+        if emoji_clip:
+            emoji_clip.close()
+        print("Emoji attachment processed successfully.")
+    except Exception as e:
+        print(f"Error processing emoji attachment: {e}")
 if __name__ == "__main__":
-    asyncio.run(get_corresponding_bg_music_temp_path_test())
+    asyncio.run(test_handle_each_emoji_attachment())

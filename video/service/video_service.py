@@ -5,8 +5,9 @@ from moviepy import (AudioFileClip, ColorClip, ImageClip,
                      VideoFileClip, CompositeAudioClip,
                       CompositeVideoClip, TextClip)
 from moviepy import concatenate_videoclips
-from video.dto.requests import CreateVideoRequest
-from video.dto.resposes import CreateVideoResponse
+from video.dto.requests import CreateVideoRequest, EditVideoRequest
+from video.dto.resposes import CreateVideoResponse, EditVideoResponse
+from video.models import TextAttachment, EmojiAttachment
 from video.dao import video_dao
 from abc import ABC, abstractmethod
 from video.models import Video, VideoMetadata, Scene
@@ -21,7 +22,13 @@ class video_service(ABC):
     def insert_video(video: Video):
         pass
     @abstractmethod
+    def update_video(video: Video):
+        pass
+    @abstractmethod
     def create_video(request: CreateVideoRequest):
+        pass
+    @abstractmethod
+    def edit_video(request: EditVideoRequest) -> EditVideoResponse:
         pass
     def get_video_by_id(id: str):
         pass
@@ -179,11 +186,126 @@ class video_service_v2(video_service):
                 secure_url="",
                 message= "error creating video"
             )
+
+    async def handle_each_text_attachment(self, text_attachment: TextAttachment):
+        if text_attachment.text:
+            try:
+                text_clip = TextClip(text = text_attachment.text ,
+                                     font_size = text_attachment.font_size,
+                                     duration = (text_attachment.end_time - text_attachment.start_time),
+                                      font = 'c:\Windows\Fonts\ARIAL.TTF')
+                text_clip.start = text_attachment.start_time
+                text_clip.end = text_attachment.end_time
+                text_clip.color = text_attachment.color_hex
+                return text_clip
+            except Exception as e:
+                print(f"Error creating text clip: {e}")
+                try: text_clip.close()
+                except: pass
+                return None
+    async def handle_each_emoji_attachment(self, emoji_attachment: EmojiAttachment):
+        if emoji_attachment:
+            try:
+                emoji_url = f"https://fonts.gstatic.com/s/e/notoemoji/latest/{emoji_attachment.codepoint}/512.gif"
+                emoji_clip = (ImageClip(img=emoji_url)
+                            .with_start(emoji_attachment.start_time)
+                            .with_duration(emoji_attachment.end_time - emoji_attachment.start_time)
+                            .with_position((emoji_attachment.position.x, emoji_attachment.position.y)))
+                emoji_clip = emoji_clip.resized(height=emoji_attachment.size, width=emoji_attachment.size)
+                # emoji_clip = (ImageClip(img=emoji_url, is_mask=False, transparent=True,
+                #                         duration=(emoji_attachment.end_time - emoji_attachment.start_time)))
+                # emoji_clip.start = emoji_attachment.start_time
+                # emoji_clip.end = emoji_attachment.end_time
+                # emoji_clip.with_position((emoji_attachment.position.x, emoji_attachment.position.y))
+                # emoji_clip.resized(height=emoji_attachment.size, width=emoji_attachment.size)
+                return emoji_clip
+            except Exception as e:
+                print(f"Error creating emoji clip: {e}")
+                try: emoji_clip.close()
+                except: pass
+                return None
+    async def get_video_temp_path(self, secure_url: str) -> str:
+        if secure_url:
+            response = requests.get(secure_url)
+            if response.status_code == 200:
+                temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+                temp_video.write(response.content)
+                temp_video.close()
+                return temp_video.name
+        return None
+    async def edit_video(self, request: EditVideoRequest) -> EditVideoResponse:
+        try:
+            video_data = await self.get_video_by_id(request.public_id)
+            if not video_data:
+                return EditVideoResponse(
+                    public_id=request.public_id,
+                    secure_url="",
+                    message="video not found"
+                )
+            old_video_temp_path = await self.get_video_temp_path(video_data.video_url)
+            old_video = VideoFileClip(old_video_temp_path)
+
+            text_clips = []
+            emoji_clips = []
+            all_clips = []
+            clips_to_close = []
+
+            for text_attachment in request.text_attachments:
+                text_clip = await self.handle_each_text_attachment(text_attachment)
+                if text_clip:
+                    text_clips.append(text_clip)
+                    clips_to_close.append(text_clip)
+
+            for emoji_attachment in request.emoji_attachments:
+                emoji_clip = await self.handle_each_emoji_attachment(emoji_attachment)
+                if emoji_clip:
+                    emoji_clips.append(emoji_clip)
+                    clips_to_close.append(emoji_clip)
+            
+            all_clips = [old_video]
+            all_clips.extend(emoji_clips)
+            all_clips.extend(text_clips)
+
+            # Tạo video từ các clip
+            final_video = CompositeVideoClip(all_clips, size=old_video.size)
+            temp_video_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+            temp_video_file.close()
+            final_video.write_videofile(temp_video_file.name, codec="libx264", audio_codec="aac", fps=24)
+
+            new_secure_url, public_id, duration = await storage_service.updateVideo(temp_video_file.name,
+                                                                                 video_data.public_id)
+            updated_video_data = Video(**video_data.__dict__)
+            updated_video_data.video_url = new_secure_url
+            updated_video_data.duration = duration
+            await self.update_video(updated_video_data)
+            os.remove(temp_video_file.name)
+
+            for clip in clips_to_close:
+                try: clip.close()
+                except: pass
+
+            return EditVideoResponse(
+                public_id=public_id,
+                secure_url=new_secure_url,
+                message="video edited successfully"
+            )
+        except Exception as e:
+            print(f"Error editing video: {e}")
+            for clip in clips_to_close:
+                try: clip.close()
+                except: pass
+            return EditVideoResponse(
+                public_id=request.public_id,
+                secure_url="",
+                message="error editing video"
+            )
         
+    
     async def insert_video(self, video: Video):
         await video_dao.insert_video(video)
 
-
+    async def update_video(self, video: Video):
+        await video_dao.update_video(video)
     async def get_video_by_id(self,id):
         return await video_dao.get_video_by_id(id)
     
