@@ -5,23 +5,22 @@ from storage import storage_service
 from fastapi import HTTPException
 from text_to_speech import tts_service
 from ai import ai_service
+from video_script.dto.responses import GetVideoMetadataResponse, AutoGenerateTextScriptResponse
 from video_script.dto.requests import AutoGenerateScriptRequest
+from video_script.result_status import AutoGenerateTextScriptResult, ConvertToVideoMetadataResult
 from video_script.models import VideoMetadata
 import json
 import asyncio
 
 class video_script_service(ABC):
     @abstractmethod
-    def getAllSampleVoiceList(self):
+    def getAllVoices(self, lang: str = 'vi'):
         pass
     @abstractmethod
-    def getVoice(self, id):
+    def getVoiceById(self, id):
         pass
     @abstractmethod
     def generateTextScript(self, prompt):
-        pass
-    @abstractmethod
-    def saveVoice(self, voice):
         pass
     @abstractmethod
     def create_prompt_to_convert_script_to_object(scirpt: str):
@@ -42,30 +41,57 @@ class video_script_service_v1(video_script_service):
             #text_script = await ai_service.get_response(prompt)
             text_script = await asyncio.to_thread(ai_service.get_response, prompt)
 
-            return text_script
+            return AutoGenerateTextScriptResponse(
+                message = AutoGenerateTextScriptResult.SUCCESS.value,
+                result= AutoGenerateTextScriptResult.SUCCESS,
+                data=text_script
+            )
         except Exception as e:
             print(f"Error: {e}")
-            return None
-    async def getAllSampleVoiceList(self):
+            return AutoGenerateTextScriptResponse(
+                message = AutoGenerateTextScriptResult.SERVER_BUSY.value,
+                result= AutoGenerateTextScriptResult.SERVER_BUSY,
+                data=None
+            )
+    async def getAllVoices(self, gender: str):
         try:
-            results = await video_script_dao.getAllSampleVoice()
+            results = await video_script_dao.GetAllVoices(gender=gender)
             return results
         except Exception as e:
             print(f"Error: {e}")  
-        return []         
-    async def getVoice(self, id):
+        return []
+    async def preparVoice(self, lang: str = 'vi'):
         try:
-            res = await video_script_dao.getVoice(id)
+            voices = await self.getAllVoices(lang=lang)
+
+            for voice in voices:
+                temp_file_path = await tts_service.text_to_speech(
+                    text="Xin chào, đây là một bài kiểm tra.",
+                    voiceId=voice['ShortName'],
+                    lang=lang
+                )
+                secure_url, public_id = await storage_service.uploadVideo(temp_file_path)
+                voice_data = Voice(
+                    voiceId=voice['ShortName'],
+                    gender = voice['Gender'],
+                    sampleVoiceUrl=secure_url,
+                    publicId=public_id,
+                )
+                await video_script_dao.insertVoice(voice_data)
+            
+            print(f"✅ All voices prepared and saved successfully.")
+            return True
+        except Exception as e:
+            print(f"Error preparing voice: {e}")
+            print(e)
+            return False
+
+    async def getVoiceById(self, id):
+        try:
+            res = await video_script_dao.GetVoiceById(id)
             return res
         except Exception as e:
             print(f'Error: {e}')
-            return None
-    async def saveVoice(self, voice: Voice):
-        try:
-            await video_script_dao.saveVoice(voice)
-            return voice
-        except Exception as e:
-            print(f"Error: {e}")
             return None
     def create_prompt_to_convert_script_to_object(self, script: str) -> str:
         prompt = f"""
@@ -110,7 +136,7 @@ class video_script_service_v1(video_script_service):
         except Exception as e:
             print(f"Error parsing JSON content: {e}")
             return {}
-    async def get_video_metadata(self, script: str) -> VideoMetadata:
+    async def get_video_metadata(self, script: str) -> GetVideoMetadataResponse:
         try:
             prompt = self.create_prompt_to_convert_script_to_object(script)
             response_text = await asyncio.to_thread(ai_service.get_response, prompt)
@@ -120,7 +146,15 @@ class video_script_service_v1(video_script_service):
                 raise ValueError("Parsed video metadata is empty or invalid")
             
             video_metadata = VideoMetadata(**video_metadata_json)
-            return video_metadata
+            return GetVideoMetadataResponse(
+                message=ConvertToVideoMetadataResult.SUCCESS.value,
+                result=ConvertToVideoMetadataResult.SUCCESS,
+                data=video_metadata
+            )
         except Exception as e:
             print(f"Error getting video metadata: {e}")
-            return None
+            return GetVideoMetadataResponse(
+                message=ConvertToVideoMetadataResult.SERVER_BUSY.value,
+                result=ConvertToVideoMetadataResult.SERVER_BUSY,
+                data=None
+            )

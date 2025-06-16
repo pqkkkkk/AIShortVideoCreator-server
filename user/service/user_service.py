@@ -39,11 +39,13 @@ class user_service_v1(user_service):
                 token = auth_service.create_access_token(data={"sub": user.username})
                 return SignInResponse(status=SignInResult.SUCCESS,
                                        message="Sign in successful",
+                                       username= user.username,
                                        access_token=token)
         except Exception as e:
             print(f"Error during sign in: {e}")
             return SignInResponse(status=SignInResult.UNKNOWN_ERROR,
                                    message="An unknown error occurred",
+                                    username="",
                                    access_token="")
         
         

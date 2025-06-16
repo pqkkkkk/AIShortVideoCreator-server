@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Form, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer
-from video.dto.requests import CreateVideoRequest
-from video.dto.resposes import CreateVideoResponse
+from video.dto.requests import CreateVideoRequest, EditVideoRequest
+from video.dto.resposes import CreateVideoResponse, EditVideoResponse
 from video.service import video_service
 import json
 from auth import auth_service
@@ -31,27 +31,42 @@ async def create_video(
     background_musics: list[UploadFile] = File(default=[])
     ):
     try:
-        secure_url = "error"
         video_metadata = CreateVideoRequest(**json.loads(video_metaData_json))
-        secure_url, public_id = await video_service.create_video(
+        response = await video_service.create_video(
             video_metadata, 
             background_images, 
             background_musics
         )
-        if secure_url == "error":
+        if response.secure_url == "":
             raise HTTPException(status_code=500, detail="Error creating video")
         
-        return CreateVideoResponse(
-            public_id=public_id,
-            secure_url=secure_url,
-            message="Video created successfully"
-        )
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.put("/video/{id}",response_model=EditVideoResponse)
+async def edit_video(request: EditVideoRequest,
+                     #token: str = Depends(validate_token)
+                     ):
+    response = await video_service.edit_video(request)
+    if response.secure_url == "":
+        raise HTTPException(status_code=500, detail="Error editing video")
+    
+    return response
+
+
 @router.get("/video/{id}")
 async def get_video_by_id(id: str,
-                          token: str = Depends(validate_token)):
+                          #token: str = Depends(validate_token)
+                          ):
     video = await video_service.get_video_by_id(id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     return video
+
+
+@router.get("/video")
+async def get_all_videos(token: str = Depends(validate_token)):
+    videos = await video_service.get_all_videos()
+    return videos

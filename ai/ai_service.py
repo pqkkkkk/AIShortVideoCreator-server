@@ -19,7 +19,7 @@ class gemini_service(ai_service):
     def __init__(self):
         self.api_key = get_env_variable("GEMINI_API_KEY")
         self.client = genai.Client(api_key=self.api_key)
-
+        
     def get_response(self, prompt: str) -> str:
         response = self.client.models.generate_content(
             model="gemini-2.0-flash",

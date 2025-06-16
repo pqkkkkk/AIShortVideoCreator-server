@@ -1,16 +1,17 @@
 from beanie import Document
 from pydantic import BaseModel
+
+
 class MusicTrack(Document):
     name: str
     artist: str
     musicUrl: str
     publicId: str
+    duration: int
     
     class Settings:
         collection="music"
     
-    class Config:
-        arbitrary_types_allowed = True  # Cho phép ObjectId và các loại tùy chỉnh khác
     
 class CutMusicRequest(BaseModel):
     musicId: str

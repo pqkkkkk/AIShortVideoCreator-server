@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.security import OAuth2PasswordBearer
 from video_script.service import video_script_service
 from .models import Voice
 from typing import List
 from video_script.dto.requests import AutoGenerateScriptRequest, GetVideoMetadataRequest
-from video_script.dto.responses import GetVideoMetadataResponse
+from video_script.dto.responses import GetVideoMetadataResponse, AutoGenerateTextScriptResponse
+from video_script.result_status import AutoGenerateTextScriptResult, ConvertToVideoMetadataResult
 import markdown2
 from bs4 import BeautifulSoup
 from auth import auth_service
@@ -25,28 +26,35 @@ def validate_token(token: str = Depends(oauth2_scheme)):
     else:
         raise HTTPException(status_code=500, detail="Error validating token")
 
-@router.get("/video_script/voiceSample", response_model=List[Voice])
-async def getExampleVoice():
-    return await video_script_service.getAllSampleVoiceList()
+@router.get("/video_script/voice", response_model=List[Voice])
+async def GetVoices(gender: str = Query(default="")):
+    return await video_script_service.getAllVoices(gender=gender)
+
+@router.get('/video_script/voice/{id}', response_model=Voice)
+async def getVoice(id):
+    return await video_script_service.getVoiceById(id=id)
 
 @router.post("/video_script")
 async def AutoGenerateVideoScript(request: AutoGenerateScriptRequest, token: str = Depends(validate_token)):
     response = await video_script_service.generateTextScript(request=request)
-    if response:
-        html = markdown2.markdown(response)
+    if response and response.result == AutoGenerateTextScriptResult.SUCCESS:
+        html = markdown2.markdown(response.data)
         soup = BeautifulSoup(html, "html.parser")
         plain_text = soup.get_text()
-        return {"message": "success", "data": plain_text}
+        return AutoGenerateTextScriptResponse(
+            message=AutoGenerateTextScriptResult.SUCCESS.value,
+            result=AutoGenerateTextScriptResult.SUCCESS,
+            data=plain_text
+        )
     else:
-        raise HTTPException(status_code=500, detail="Failed to generate script")
+        raise HTTPException(status_code=500,
+                            detail=response.message if response else "Failed to generate video script")
     
 @router.post("/video_script/video_metadata")
 async def GetVideoMetadata(request: GetVideoMetadataRequest, token: str = Depends(validate_token)):
-    video_metadata = await video_script_service.get_video_metadata(request.script)
-    if video_metadata:
-        return GetVideoMetadataResponse(message="success", data=video_metadata)
+    response = await video_script_service.get_video_metadata(request.script)
+    if response and response.result == ConvertToVideoMetadataResult.SUCCESS:
+        return response
     else:
-        return GetVideoMetadataResponse(message="error", data=None)
-@router.get('/video_script/getVoice/{id}', response_model=Voice)
-async def getVoice(id):
-    return await video_script_service.getVoice(id=id)
+        raise HTTPException(status_code=500,
+                             detail=response.message if response else "Failed to convert script to video metadata")

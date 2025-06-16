@@ -6,10 +6,10 @@ from typing import Optional
 
 class musicTrackDao(ABC):
     @abstractmethod
-    async def get_music_track(self, track_id: str) -> Optional[MusicTrack]:
+    async def get_music_track_by_id(self, track_id: str) -> Optional[MusicTrack]:
         pass
     
-    def saveMusicTrack(self ,musicTrack: CutMusic):
+    def InsertMusicTrack(self ,musicTrack: CutMusic):
         pass
     
     def getAllTrack(self):
@@ -19,21 +19,16 @@ class musicTrackDao(ABC):
         pass
 
 class mongodb_musicTrackDao(musicTrackDao):
-    async def get_music_track(self, track_id: str) -> Optional[MusicTrack]:
+    async def get_music_track_by_id(self, public_id: str) -> Optional[MusicTrack]:
         try:
-            return await MusicTrack.get(PydanticObjectId(track_id))
+            return await MusicTrack.find_one(MusicTrack.publicId == public_id)
         except Exception as e:
             print(f"Error fetching music track: {str(e)}")
             return None
         
         
-    async def saveMusicTrack(self, musicTrack: CutMusic) -> bool:
-        try:    
-            await musicTrack.insert()
-            return True
-        except Exception as e:
-            print("error: e")    
-        return False
+    async def InsertMusicTrack(self, musicTrack: MusicTrack):
+        await MusicTrack.insert_one(musicTrack)
     
     async def getAllTrack(self):
         tracks = await MusicTrack.find_all().to_list()
