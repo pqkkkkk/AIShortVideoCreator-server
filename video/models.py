@@ -1,5 +1,11 @@
+from pydantic import BaseModel, Field
+from typing import Dict, List
+from datetime import datetime
 from beanie import Document
-from pydantic import BaseModel
+
+class UploadInfo(BaseModel):
+    videoId: str
+    uploadedAt: datetime
 
 class Video(Document):
     public_id: str
@@ -10,6 +16,8 @@ class Video(Document):
     #created_at: str
     userId: str
     duration: float
+    uploaded: Dict[str, List[UploadInfo]] = Field(default_factory=dict)
+
     class Settings:
         collection = "video"
 
