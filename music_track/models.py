@@ -7,7 +7,7 @@ class MusicTrack(Document):
     publicId: str
     
     class Settings:
-        name="music"
+        collection="music"
     
     class Config:
         arbitrary_types_allowed = True  # Cho phép ObjectId và các loại tùy chỉnh khác
