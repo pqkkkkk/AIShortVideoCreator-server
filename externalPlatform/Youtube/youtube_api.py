@@ -1,29 +1,35 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query, Header
 router = APIRouter()
-from .models import ExternalItem
+from .models import ExternalItem, uploadVideo
 from typing import List
-from externalPlatform.Youtube.service import YouTubeService
-
+from .service import YouTubeService
+import traceback
+youtube_service = YouTubeService()
 # Oke, không có platforn vì tiktok kh search được
 @router.get("/search/{keyword}", response_model=List[ExternalItem])
 def search(keyword: str):
-    return YouTubeService.getTopTrending(keyword=keyword)
+    return youtube_service.getTopTrending(keyword=keyword)
+
+@router.get("/youtube/login")
+def login_with_youtube(redirect_uri):
+    auth_url = youtube_service.get_authorization_url(redirect_uri)
+    return {"auth_url": auth_url}
+
+@router.get("/youtube/callback")
+def youtube_callback(redirect_uri: str , code: str = Query(...)):
+    credentials = youtube_service.get_credentials_from_code(code, redirect_uri)
+    # (Lưu access_token vào DB hoặc cache session)
+    return {"access_token": credentials.token}
 
 
 # Upload đã oke, cần xác định lại tham số truyền vào từ UI là gì khi gọi
 @router.post("/upload_video")
-def upload_video(request: ExternalItem):
+async def upload_video(request: uploadVideo, youtube_token: str = Header(..., alias="youtube-token")):
     try:
-        response = YouTubeService.upload_video(
-            file_path=request.file_path,
-            title=request.title,
-            description=request.description,
-            tags=request.tags,
-            category_id=request.category_id,
-            privacy_status=request.privacy_status
-        )
-        return {"message": "Upload thành công", "video_id": response["id"]}
+        response = await youtube_service.upload_video(request, youtube_token)
+        return {"id": response["id"]}
     except Exception as e:
+        print("Lỗi chi tiết:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 # Lấy statistic các video đã đăng => 

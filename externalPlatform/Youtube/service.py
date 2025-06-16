@@ -3,33 +3,34 @@ import random
 import time
 from typing import List, Dict, Any
 import requests
-import httplib2
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.file import Storage
-from oauth2client.tools import run_flow
 from abc import ABC, abstractmethod
 from config import get_env_variable
-from externalPlatform.Youtube.models import ExternalItem
-
+from externalPlatform.Youtube.models import ExternalItem, uploadVideo, StatisticInfo
+from video.models import UploadInfo
+from google_auth_oauthlib.flow import Flow
+from google.oauth2.credentials import Credentials
+from .dao import videoDao
+from datetime import datetime
 load_dotenv()
 
 class PlatformService(ABC):
     @abstractmethod
     def getTopTrending(self, keyword: str) -> List[ExternalItem]:
         pass
-    def upload_video(self, file_path: str, title: str, description: str,
-                     tags: List[str], category_id: str,
-                     privacy_status: str = "private") -> Dict[str, Any]:
+    async def upload_video(self ,upload_video: uploadVideo, youtube_token: str ) -> Dict[str, Any]:
         pass
-
+    def getStatisticInfo(self, videoId):
+        pass
+        
 class YouTubeService(PlatformService):
     def __init__(self):
         self.api_key = get_env_variable('YOUTUBE_API_KEY')
         self.client_secret_file = os.path.join(os.path.dirname(__file__), "client_secrets.json")
         self.youtube = build('youtube', 'v3', developerKey=self.api_key)
+        self.dao = videoDao
 
     def getTopTrending(self, keyword: str) -> List[ExternalItem]:
         request = self.youtube.search().list(
@@ -37,7 +38,7 @@ class YouTubeService(PlatformService):
             maxResults=10,
             q=keyword,
             type="video",
-            order="viewCount"
+            order="relevance",
         )
         response = request.execute()
 
@@ -77,43 +78,34 @@ class YouTubeService(PlatformService):
         return result
 
     # authentication user youtube account for get credentials
-    def get_authenticated_service(self):
-        flow = flow_from_clientsecrets(
-            self.client_secret_file,
-            scope=["https://www.googleapis.com/auth/youtube.upload"]
-        )
-        storage = Storage("youtube-oauth2.json")
-        credentials = storage.get()
-
-        if credentials is None or credentials.invalid:
-            credentials = run_flow(flow, storage)
-
-        return build('youtube', 'v3', http=credentials.authorize(httplib2.Http()))
-
-    def upload_video(self, file_path: str, title: str, description: str,
-                     tags: List[str], category_id: str,
-                     privacy_status: str ) -> Dict[str, Any]:
-        youtube = self.get_authenticated_service()
-
+    async def upload_video(self ,upload_video: uploadVideo, youtube_token: str ) -> Dict[str, Any]:
+        # Tạo credentials từ access_token
+        credentials = Credentials(token=youtube_token)
+        self.youtube = build("youtube", "v3", credentials=credentials)
         body = {
             'snippet': {
-                'title': title,
-                'description': description,
-                'tags': tags,
-                'categoryId': category_id
+                'title': upload_video.title,
+                'description': upload_video.description,
+                'tags': upload_video.keyword.split(',') if upload_video.keyword else [],
+                'categoryId': upload_video.category
             },
             'status': {
-                'privacyStatus': privacy_status
+                'privacyStatus': upload_video.privateStatus
             }
         }
-
-        insert_request = youtube.videos().insert(
+        # tải video tạm về từ url ở đây
+        temp_file = "tempfile"
+        self.download_file(upload_video.videoUrl, temp_file)
+        try: 
+            insert_request = self.youtube.videos().insert(
             part="snippet,status",
             body=body,
-            media_body=MediaFileUpload(file_path, chunksize=-1, resumable=True)
+            media_body=MediaFileUpload(temp_file, chunksize=-1, resumable=True)
         )
+        except Exception as e:
+            print(f"Lỗi khi upload: {e}")
 
-        print(f"Đang upload video: {title}")
+        print(f"Đang upload video: {upload_video.title}")
         response = None
         retry = 0
         max_retries = 5
@@ -133,11 +125,14 @@ class YouTubeService(PlatformService):
                 time.sleep(sleep_seconds)
 
         print(f"Upload hoàn tất! Video ID: {response['id']}")
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+        # Lưu giá trị videoId trên youtube vào db
+        uploadInfo = UploadInfo(videoId=response['id'], uploadedAt=datetime.now())
+        await self.dao.saveUploadInfo(self, upload_video.id , "youtube", uploadInfo)
         return response
 
-    def download_file(url, local_path):
+    def download_file(self, url, local_path):
         response = requests.get(url, stream=True)
         response.raise_for_status()
         with open(local_path, 'wb') as f:
@@ -145,14 +140,49 @@ class YouTubeService(PlatformService):
                 f.write(chunk)
         print("download success")
 
-    # Lấy thống kê gồm: số lượng video đã đăng
-    # Tạo 1 bảng video Upload trong database để lưu thông tin các video 
-    # đã upload lên các nền tảng
-    # (khi upload thì upload xong thì lấy videoID trả ra từ platform 
-    # (videoID này là ID của video trên platform, không phải ID của video) 
-    # và insert vào bảng)
-    # video_uploads (platform_video_ID, videoID của video, platform, uploaded_at)
+    def get_authorization_url(self,redirect_uri: str):
+        flow = Flow.from_client_secrets_file(
+            self.client_secret_file,
+            scopes=['https://www.googleapis.com/auth/youtube.upload'],
+            redirect_uri = redirect_uri
+        )
+        auth_url, _ = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true',
+            prompt='consent',
+        )
+        return auth_url
+
+    def get_credentials_from_code(self, code: str, redirect_uri: str):
+        flow = Flow.from_client_secrets_file(
+            self.client_secret_file,
+            scopes=['https://www.googleapis.com/auth/youtube.upload'],
+            redirect_uri=redirect_uri
+        )
+        flow.fetch_token(code=code)
+        self.youtube = build("youtube", "v3", credentials=flow.credentials)
+        return flow.credentials
     
-    # cần access_token đăng nhập vào youtube để lấy statistic của 1 video của ngừoi dùng
-    # => xử lý tương tự facebook
+    def getStatisticInfo(self, videoId) -> StatisticInfo:
+        self.youtube = build('youtube', 'v3', developerKey=self.api_key)
+        request = self.youtube.videos().list(
+            part="statistics",
+            id=videoId
+        )
+        response = request.execute()
+        print("YouTube API response:", response)
+        
+        items = response.get('items', [])
+        if items:
+            stats = items[0].get('statistics', {})
+            return StatisticInfo(
+                id=videoId,
+                viewCount=int(stats.get("viewCount", 0)),
+                likeCount=int(stats.get("likeCount", 0)),
+                commentCount=int(stats.get("commentCount", 0)),
+                favoriteCount=int(stats.get("favoriteCount", 0))
+            )
+        else:
+            return StatisticInfo(id=videoId)            
+        
     

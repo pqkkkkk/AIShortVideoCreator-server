@@ -1,13 +1,20 @@
 from beanie import Document
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Dict, List
+from datetime import datetime
+
+class UploadInfo(BaseModel):
+    videoId: str
+    uploadedAt: datetime
+
 class Video(Document):
-    id: str
     title: str
     #topic: str
     status: str
     video_url: str
     #created_at: str
     userId: str
+    uploaded: Dict[str, List[UploadInfo]] = Field(default_factory=dict)
     class Settings:
         collection = "video"
 class Scene(BaseModel):
