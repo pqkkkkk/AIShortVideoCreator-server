@@ -10,7 +10,7 @@ class MusicTrack(Document):
     duration: int
     
     class Settings:
-        collection="music"
+        name="Music"
     
     
 class CutMusicRequest(BaseModel):

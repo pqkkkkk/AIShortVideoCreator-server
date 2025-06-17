@@ -69,7 +69,7 @@ class my_music_service(music_service):
             print(f"Error preparing music tracks: {e}")
             raise e
         
-    async def GetTracks(self) -> List[Dict]:
+    async def GetTracks(self) -> List[MusicTrack]:
         return await self.dao.getAllTrack()
     async def get_music_track_by_id(self, publicId: str) -> MusicTrack:
         music = await self.dao.get_music_track_by_id(publicId)

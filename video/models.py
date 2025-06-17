@@ -1,8 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 from typing import Dict, List
 from datetime import datetime
 from beanie import Document
-
+from video.result_status import VideoStatus
 class UploadInfo(BaseModel):
     videoId: str
     uploadedAt: datetime
@@ -17,7 +17,10 @@ class Video(Document):
     userId: str
     duration: float
     uploaded: Dict[str, List[UploadInfo]] = Field(default_factory=dict)
-
+    @computed_field
+    def can_edit(self) -> bool:
+        return self.status == VideoStatus.PROCESSING.value
+    
     class Settings:
         collection = "video"
 
