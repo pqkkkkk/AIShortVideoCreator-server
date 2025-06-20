@@ -14,6 +14,8 @@ from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from .dao import videoDao
 from datetime import datetime
+from tempfile import NamedTemporaryFile
+
 load_dotenv()
 
 class PlatformService(ABC):
@@ -93,14 +95,13 @@ class YouTubeService(PlatformService):
                 'privacyStatus': upload_video.privateStatus
             }
         }
-        # tải video tạm về từ url ở đây
-        temp_file = "tempfile"
-        self.download_file(upload_video.videoUrl, temp_file)
+        video_temp_path = await self.get_video_temp_path(upload_video.videoUrl)
+        media = MediaFileUpload(video_temp_path, chunksize=-1, resumable=True)
         try: 
             insert_request = self.youtube.videos().insert(
             part="snippet,status",
             body=body,
-            media_body=MediaFileUpload(temp_file, chunksize=-1, resumable=True)
+            media_body=media
         )
         except Exception as e:
             print(f"Lỗi khi upload: {e}")
@@ -125,12 +126,26 @@ class YouTubeService(PlatformService):
                 time.sleep(sleep_seconds)
 
         print(f"Upload hoàn tất! Video ID: {response['id']}")
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
+        
+        # if os.path.exists(video_temp_path):
+        #     os.remove(video_temp_path)
+
         # Lưu giá trị videoId trên youtube vào db
-        uploadInfo = UploadInfo(videoId=response['id'], uploadedAt=datetime.now())
-        await self.dao.saveUploadInfo(self, upload_video.id , "youtube", uploadInfo)
+        # uploadInfo = UploadInfo(videoId=response['id'], uploadedAt=datetime.now())
+        # await self.dao.saveUploadInfo(self, upload_video.id , "youtube", uploadInfo)
         return response
+    
+
+    async def get_video_temp_path(self, secure_url: str) -> str:
+        if secure_url:
+            response = requests.get(secure_url)
+            if response.status_code == 200:
+                temp_video = NamedTemporaryFile(delete=False, suffix=".mp4")
+                temp_video.write(response.content)
+                temp_video.close()
+                return temp_video.name
+        return None
+    
 
     def download_file(self, url, local_path):
         response = requests.get(url, stream=True)

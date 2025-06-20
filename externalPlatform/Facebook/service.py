@@ -44,7 +44,7 @@ class FacebookService():
 
     def uploadVideo(self, videoId: str, access_token: str):
         # Gọi db để lấy URL của videoId
-        video = video_service.get_video_by_id(videoId)
+        video = video_service.get_video_data_by_id(videoId)
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
         temp_file_path = temp_file.name
         temp_file.close()  # Đóng file để các hàm khác có thể sử dụng

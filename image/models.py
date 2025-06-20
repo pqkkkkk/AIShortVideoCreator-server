@@ -1,18 +1,15 @@
 from beanie import Document
 
 class Image(Document):
-    id : str
     image_url: str
-    topic : str
     public_id: str
     class Settings:
-        collection = "image"
+        name = "Image"
 
     class Config:
         schema_extra = {
             "example": {
-                "id": "1",
-                "imageUrl": "https://example.com/image.jpg",
-                "topic": "nature"
+                "image_url": "https://example.com/image.jpg",
+                "public_id": "12345abcde"
             }
         }

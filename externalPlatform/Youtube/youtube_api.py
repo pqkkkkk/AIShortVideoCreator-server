@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query, Header
-router = APIRouter()
 from .models import ExternalItem, uploadVideo
 from typing import List
 from .service import YouTubeService
 import traceback
+
 youtube_service = YouTubeService()
+router = APIRouter()
+
 # Oke, không có platforn vì tiktok kh search được
 @router.get("/search/{keyword}", response_model=List[ExternalItem])
 def search(keyword: str):

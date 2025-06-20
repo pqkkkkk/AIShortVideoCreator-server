@@ -12,7 +12,7 @@ async def main():
 
     await storage_service.uploadVideo(temp_file_path)
 async def list_voices():
-    voices = await tts_service.list_voice(lang='vi')
+    voices = await tts_service.list_voice(lang='en-US')
     for voice in voices:
         print(f"ShortName : {voice['ShortName']}, Gender:{voice['Gender']}")
 if __name__ == "__main__":

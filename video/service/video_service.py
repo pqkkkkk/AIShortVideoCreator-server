@@ -6,8 +6,10 @@ from moviepy import (AudioFileClip, ColorClip, ImageClip,
                       CompositeVideoClip, TextClip)
 from moviepy import concatenate_videoclips
 from video.dto.requests import CreateVideoRequest, EditVideoRequest
-from video.dto.resposes import CreateVideoResponse, EditVideoResponse
+from video.dto.resposes import (CreateVideoResponse, EditVideoResponse,
+                            GetVideoByIdResponse, GetAllVideosResponse)
 from video.models import TextAttachment, EmojiAttachment
+from video.result_status import VideoStatus
 from video.dao import video_dao
 from abc import ABC, abstractmethod
 from video.models import Video, VideoMetadata, Scene
@@ -19,10 +21,10 @@ import requests
 
 class video_service(ABC):
     @abstractmethod
-    def insert_video(video: Video):
+    def insert_video_data(video: Video):
         pass
     @abstractmethod
-    def update_video(video: Video):
+    def update_video_data(video: Video):
         pass
     @abstractmethod
     def create_video(request: CreateVideoRequest):
@@ -30,9 +32,9 @@ class video_service(ABC):
     @abstractmethod
     def edit_video(request: EditVideoRequest) -> EditVideoResponse:
         pass
-    def get_video_by_id(id: str):
+    def get_video_data_by_id(id: str):
         pass
-    def get_all_videos():
+    def get_all_videos_data():
         pass
 class video_service_v2(video_service):
     async def get_corresponding_bg_image_temp_path(self, bg_image_public_id: str,
@@ -167,12 +169,13 @@ class video_service_v2(video_service):
             video_data = Video(
                 public_id=public_id,
                 title=request.title,
-                status="done",
+                status= VideoStatus.PROCESSING.value,
+                can_edit=True,
                 video_url=secure_url,
                 userId=request.userId,
                 duration=final_video.duration
             )
-            await self.insert_video(video_data)
+            await self.insert_video_data(video_data)
 
             return CreateVideoResponse(
                 public_id=public_id,
@@ -235,7 +238,7 @@ class video_service_v2(video_service):
         return None
     async def edit_video(self, request: EditVideoRequest) -> EditVideoResponse:
         try:
-            video_data = await self.get_video_by_id(request.public_id)
+            video_data = await self.get_video_data_by_id(request.public_id)
             if not video_data:
                 return EditVideoResponse(
                     public_id=request.public_id,
@@ -277,7 +280,8 @@ class video_service_v2(video_service):
             updated_video_data = Video(**video_data.__dict__)
             updated_video_data.video_url = new_secure_url
             updated_video_data.duration = duration
-            await self.update_video(updated_video_data)
+            updated_video_data.status = VideoStatus.DONE.value
+            await self.update_video_data(updated_video_data)
             os.remove(temp_video_file.name)
 
             for clip in clips_to_close:
@@ -301,17 +305,55 @@ class video_service_v2(video_service):
             )
         
     
-    async def insert_video(self, video: Video):
+    async def insert_video_data(self, video: Video):
         await video_dao.insert_video(video)
 
-    async def update_video(self, video: Video):
+    async def update_video_data(self, video: Video):
         await video_dao.update_video(video)
-    async def get_video_by_id(self,id):
-        return await video_dao.get_video_by_id(id)
+
+    async def get_video_data_by_id(self,id) -> GetVideoByIdResponse:
+        try:
+            video_data = await video_dao.get_video_by_id(id)
+
+            if not video_data:
+                return GetVideoByIdResponse(
+                    video_data=None,
+                    can_edit=False,
+                    status_code=404,
+                    message="Video not found"
+                )
+            
+            can_edit = video_data.status == VideoStatus.PROCESSING.value
+            response = GetVideoByIdResponse(video_data=video_data,
+                                            status_code=200,
+                                            message="success",
+                                            can_edit=can_edit)
+            return response
+        except Exception as e:
+            print(f"Error getting video by id: {e}")
+            return GetVideoByIdResponse(
+                video_data=None,
+                can_edit=False,
+                message="error getting video by id",
+                status_code=500
+            )
     
 
-    async def get_all_videos(self):
-        return await video_dao.get_all_videos()
+    async def get_all_videos_data(self) -> GetAllVideosResponse:
+        try:
+            videos_data = await  video_dao.get_all_videos()
+            total_videos = len(videos_data)
+
+            
+            return GetAllVideosResponse(videos_data=videos_data,
+                                         total_videos=total_videos,
+                                           message="success",status_code=200)
+        
+        except Exception as e:
+            print(f"Error getting all videos: {e}")
+            return GetAllVideosResponse(videos_data=[], total_videos=0,
+                                        message="error getting all videos", status_code=500)
+
 class video_service_v1(video_service):
     async def create_video(self,request: CreateVideoRequest):
         try:
@@ -345,7 +387,7 @@ class video_service_v1(video_service):
         except Exception as e:
             print(f"Error creating video: {e}")
             return "error", "error"
-    async def get_video_by_id(self,id):
+    async def get_video_data_by_id(self,id):
         return await Video.get(id)
-    async def get_all_videos(self):
+    async def get_all_videos_data(self):
         return await Video.all().to_list()

@@ -1,6 +1,12 @@
 from abc import ABC, abstractmethod
 from ai import ai_service
 from storage import storage_service
+from fastapi import logger
+from image.dto.responses import GenerateImageResponse
+from image.dto.requests import GenerateImageRequest
+from image.models import Image
+from image.dao import image_dao
+
 class image_service(ABC):
     @abstractmethod
     async def upload_image(self, image: bytes) -> str:
@@ -22,7 +28,10 @@ class image_service(ABC):
         """
         pass
     @abstractmethod
-    async def get_image_from_ai(self, prompt: str) -> str:
+    async def insert_image_data(self, image_data: Image):
+        pass
+    @abstractmethod
+    async def get_image_from_ai(self, request: GenerateImageRequest) -> GenerateImageResponse:
         """
         Generates an image based on a prompt using AI.
         """
@@ -42,8 +51,17 @@ class image_service_v1(image_service):
     def get_image(self, url: str) -> bytes:
         # Implementation for retrieving an image
         pass
-    async def get_image_from_ai(self, prompt: str) -> str:
+    async def insert_image_data(self, image_data):
+        await image_dao.insert_image(image_data)
+
+    async def get_image_from_ai(self, request: GenerateImageRequest) -> GenerateImageResponse:
         try:
+            prompt = f"""
+            Generate an image based on the following prompt: {request.content}
+            Ensure the image is high quality and relevant to the prompt.
+            with width: {request.width}, height: {request.height}
+                            """
+            
             image_data = ai_service.generate_image(prompt)
             if not image_data:
                 raise ValueError("No image data returned from AI service")
@@ -52,6 +70,23 @@ class image_service_v1(image_service):
             if not image_url:
                 raise ValueError("Image upload failed, no URL returned")
             
-            return image_url
+            await self.insert_image_data(
+                Image(
+                    public_id=public_id,
+                    image_url=image_url,
+                )
+            )
+            return GenerateImageResponse(
+                image_url=image_url,
+                public_id=public_id,
+                status_code=200,
+                message="Image generated successfully"
+            )
         except Exception as e:
-            raise Exception(f"Error generating image from AI service: {str(e)}")
+            logger.logger.error(f"Error generating image by AI: {str(e)}")
+            return GenerateImageResponse(
+                image_url="",
+                public_id="",
+                status_code=500,
+                message=f"Error generating image: {str(e)}"
+            )

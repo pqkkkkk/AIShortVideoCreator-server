@@ -62,8 +62,8 @@ class video_script_service_v1(video_script_service):
         return []
     async def preparVoice(self, lang: str = 'vi'):
         try:
-            voices = await self.getAllVoices(lang=lang)
-
+            #voices = await self.getAllVoices(lang=lang)
+            voices = await tts_service.list_voice(lang=lang)
             for voice in voices:
                 temp_file_path = await tts_service.text_to_speech(
                     text="Xin chào, đây là một bài kiểm tra.",
