@@ -1,0 +1,12 @@
+from pydantic import BaseModel
+from .result_status import SignInResult, SIgnUpResult
+
+class SignInResponse(BaseModel):
+    access_token: str
+    status: SignInResult
+    message: str
+    username: str
+class SignUpResponse(BaseModel):
+    message: str
+    status: SIgnUpResult
+    username: str
