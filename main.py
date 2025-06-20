@@ -5,10 +5,11 @@ from app.user import user_api
 from app.music_track import music_api
 from app.video_script import video_script_api
 from app.video import video_api
-from app.db import init_db
-from app.config import get_env_variable
+from app.trending import trending_api
 from app.external_service.external_platform.Facebook import fb_api
 from app.external_service.external_platform.Youtube import youtube_api
+from app.db import init_db
+from app.config import get_env_variable
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -31,6 +32,7 @@ app.include_router(video_script_api, prefix="/api/v1", tags=["video_script"])
 app.include_router(video_api, prefix="/api/v1", tags=["video"])
 app.include_router(fb_api, prefix="/api/v1", tags=["facebook"])
 app.include_router(youtube_api, prefix="/api/v1", tags=["youtube"])
+app.include_router(trending_api, prefix="/api/v1", tags=["trending"])
 
 app.add_middleware(
     CORSMiddleware,

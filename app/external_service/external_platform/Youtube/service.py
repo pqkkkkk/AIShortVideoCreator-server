@@ -74,9 +74,6 @@ class YouTubeService(PlatformService):
                 viewCount=view_count
             ))
         
-            
-        
-
         return result
 
     # authentication user youtube account for get credentials
@@ -146,15 +143,6 @@ class YouTubeService(PlatformService):
                 return temp_video.name
         return None
     
-
-    def download_file(self, url, local_path):
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        with open(local_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        print("download success")
-
     def get_authorization_url(self,redirect_uri: str):
         flow = Flow.from_client_secrets_file(
             self.client_secret_file,
