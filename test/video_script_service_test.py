@@ -8,7 +8,7 @@ async def test_get_video_metadata():
     print(video_metadata)
 async def test_prepare_voice():
     await init_db()
-    await public_video_script_service.prepareVoice(lang='vi')
+    await public_video_script_service.prepareVoice(lang='en-US')
 
 if __name__ == "__main__":
     asyncio.run(test_prepare_voice())

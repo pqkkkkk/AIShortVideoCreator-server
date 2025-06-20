@@ -8,7 +8,6 @@ class ExternalItem(BaseModel):
     thumbnailUrl: str
     thumbnailWidth: int
     thumbnailHeight: int
-
     viewCount: int = 0
     likeCount: int = 0
     shareCount: int = 0
