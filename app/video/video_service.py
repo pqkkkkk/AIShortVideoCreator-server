@@ -1,23 +1,27 @@
 from app.external_service.storage import storage_service
 from app.external_service.text_to_speech import tts_service
 from app.external_service.ai import ai_service
+from app.external_service.external_platform.Youtube import youtube_service
+from app.common import UploadVideoInfo
 from moviepy import (AudioFileClip, ColorClip, ImageClip,
                      VideoFileClip, CompositeAudioClip,
                       CompositeVideoClip, TextClip)
 from moviepy import concatenate_videoclips
-from app.video.requests import CreateVideoRequest, EditVideoRequest
-from app.video.resposes import (CreateVideoResponse, EditVideoResponse,
+from .requests import (CreateVideoRequest, EditVideoRequest,
+                                UploadVideoToYoutubeRequest)
+from .resposes import (CreateVideoResponse, EditVideoResponse, UploadVideoToYoutubeResponse,
                             GetVideoByIdResponse, GetAllVideosResponse)
-from app.video.models import TextAttachment, EmojiAttachment
-from app.video.result_status import VideoStatus
-from app.video.dao import video_dao
+from .models import (TextAttachment, EmojiAttachment, UploadInfo,
+                     Video, VideoMetadata, Scene)
+from.result_status import VideoStatus
+from .dao import video_dao
 from abc import ABC, abstractmethod
-from app.video.models import Video, VideoMetadata, Scene
 from app.music_track import music_service
 import tempfile
 import os
 from fastapi import UploadFile
 import requests
+import datetime
 
 class video_service(ABC):
     @abstractmethod
@@ -35,6 +39,8 @@ class video_service(ABC):
     def get_video_data_by_id(id: str):
         pass
     def get_all_videos_data():
+        pass
+    async def upload_video_to_youtube(request: UploadVideoToYoutubeRequest) -> str:
         pass
 class video_service_v2(video_service):
     async def get_corresponding_bg_image_temp_path(self, bg_image_public_id: str,
@@ -353,41 +359,50 @@ class video_service_v2(video_service):
             print(f"Error getting all videos: {e}")
             return GetAllVideosResponse(videos_data=[], total_videos=0,
                                         message="error getting all videos", status_code=500)
-
-class video_service_v1(video_service):
-    async def create_video(self,request: CreateVideoRequest):
+    
+    async def upload_video_to_youtube(self,request: UploadVideoInfo):
         try:
-            # Tạo audio từ script
-            script_audio_path = await tts_service.text_to_speech(request.script, None)
-            audio = AudioFileClip(script_audio_path)
-            duration = audio.duration
+            youtube_reponse = await youtube_service.upload_video_immediate(request)
 
-            video_bg = ColorClip(size=(1280, 720), color=(0, 0, 0)).with_duration(duration)
-            final = CompositeVideoClip([video_bg]).with_audio(audio)
-
-            temp_video_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-            temp_video_path = temp_video_file.name
-            final.write_videofile(temp_video_path, codec="libx264", audio_codec="aac", fps=24)
-
-            secure_url ,public_id = await storage_service.uploadVideo(temp_video_path)
-        
-            temp_video_file.close()
-            os.remove(temp_video_path)
-
-            video = Video(
-                public_id=public_id,
+            if not youtube_reponse:
+                raise Exception("Error uploading video to YouTube")
+            
+            response = UploadVideoToYoutubeResponse(
+                video_public_id=request.video_public_id,
                 title=request.title,
-                status="done",
-                video_url=secure_url,
-                userId=request.userId
+                videoUrl=request.videoUrl,
+                description=request.description,
+                keyword=request.keyword,
+                category=request.category,
+                privateStatus=request.privateStatus,
+                message="Video uploaded to YouTube successfully",
+                status_code=200,
+                youtube_video_id=youtube_reponse.get("id"),
+                youtube_video_url=f"https://www.youtube.com/watch?v={youtube_reponse.get('id')}"
             )
-            await video.insert()
 
-            return secure_url, public_id
+            old_video_data = await video_dao.get_video_by_id(request.video_public_id)
+            youtube_uploaded_info = UploadInfo(
+                platform="youtube",
+                videoId=response.youtube_video_id,
+                uploadedAt= datetime.datetime.now()
+            )
+            old_video_data.uploaded_info.append(youtube_uploaded_info)
+            await video_dao.update_video(old_video_data)
+
+            return response
         except Exception as e:
-            print(f"Error creating video: {e}")
-            return "error", "error"
-    async def get_video_data_by_id(self,id):
-        return await Video.get(id)
-    async def get_all_videos_data(self):
-        return await Video.all().to_list()
+            print(f"Error uploading video to YouTube: {e}")
+            response = UploadVideoToYoutubeResponse(
+                video_public_id=request.video_public_id,
+                title=request.title,
+                videoUrl=request.videoUrl,
+                description=request.description,
+                keyword=request.keyword,
+                category=request.category,
+                privateStatus=request.privateStatus,
+                message="Error uploading video to YouTube",
+                status_code=500
+            )
+
+            return response

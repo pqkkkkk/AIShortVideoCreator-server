@@ -13,4 +13,14 @@ class EditVideoRequest(BaseModel):
     userId: str
     text_attachments: list[TextAttachment]
     emoji_attachments: list[EmojiAttachment]
+
+class UploadVideoToYoutubeRequest(BaseModel):
+    id: int
+    title: str
+    videoUrl: str
+    description: str
+    keyword: str
+    category: str
+    privateStatus: str
+    accessToken: str
     

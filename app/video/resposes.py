@@ -21,3 +21,16 @@ class GetAllVideosResponse(BaseModel):
     total_videos: int
     message: str
     status_code: int
+
+class UploadVideoToYoutubeResponse(BaseModel):
+    video_public_id: str
+    title: str
+    videoUrl: str
+    description: str
+    keyword: str
+    category: str
+    privateStatus: str
+    message: str
+    status_code: int
+    youtube_video_id: str = None
+    youtube_video_url: str = None

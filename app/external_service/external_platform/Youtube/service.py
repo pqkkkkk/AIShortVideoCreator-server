@@ -8,13 +8,13 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from abc import ABC, abstractmethod
 from app.config import get_env_variable
-from app.external_service.external_platform.Youtube.models import ExternalItem, uploadVideo, StatisticInfo
-from app.video.models import UploadInfo
+from .models import ExternalItem, uploadVideo, StatisticInfo
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
-from .dao import videoDao
+#from .dao import videoDao
 from datetime import datetime
 from tempfile import NamedTemporaryFile
+from app.common import UploadVideoInfo
 
 load_dotenv()
 
@@ -32,7 +32,7 @@ class YouTubeService(PlatformService):
         self.api_key = get_env_variable('YOUTUBE_API_KEY')
         self.client_secret_file = os.path.join(os.path.dirname(__file__), "client_secrets.json")
         self.youtube = build('youtube', 'v3', developerKey=self.api_key)
-        self.dao = videoDao
+        #self.dao = videoDao
 
     def getTopTrending(self, keyword: str) -> List[ExternalItem]:
         request = self.youtube.search().list(
@@ -132,6 +132,48 @@ class YouTubeService(PlatformService):
         # await self.dao.saveUploadInfo(self, upload_video.id , "youtube", uploadInfo)
         return response
     
+
+    async def upload_video_immediate(self, request: UploadVideoInfo):
+        try:
+            # Tạo credentials từ access_token
+            credentials = Credentials(token=request.accessToken)
+            self.youtube = build("youtube", "v3", credentials=credentials)
+            body = {
+                'snippet': {
+                    'title': request.title,
+                    'description': request.description,
+                    'tags': request.keyword.split(',') if request.keyword else [],
+                    'categoryId': request.category
+                },
+                'status': {
+                    'privacyStatus': request.privateStatus
+                }
+            }
+            video_temp_path = await self.get_video_temp_path(request.videoUrl)
+            media = MediaFileUpload(video_temp_path, chunksize=-1, resumable=True)
+
+            insert_request = self.youtube.videos().insert(
+                part="snippet,status",
+                body=body,
+                media_body=media
+            )
+
+            print(f"Đang upload video: {request.title}")
+
+            response = insert_request.execute()
+            if response:
+                print(f"Upload hoàn tất! Video ID: {response['id']}")
+            else:
+                raise Exception("Không thể upload video, không có phản hồi từ YouTube.")
+            
+            # if os.path.exists(video_temp_path):
+            #     os.remove(video_temp_path)
+
+            return response
+        except Exception as e:
+            print(f"Lỗi khi upload video lên youtube: {e}")
+            raise Exception("Lỗi khi upload video lên YouTube.") from e
+
 
     async def get_video_temp_path(self, secure_url: str) -> str:
         if secure_url:

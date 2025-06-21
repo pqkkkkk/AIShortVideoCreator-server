@@ -4,6 +4,7 @@ from datetime import datetime
 from beanie import Document
 from .result_status import VideoStatus
 class UploadInfo(BaseModel):
+    platform: str
     videoId: str
     uploadedAt: datetime
 
@@ -16,7 +17,7 @@ class Video(Document):
     #created_at: str
     userId: str
     duration: float
-    uploaded: Dict[str, List[UploadInfo]] = Field(default_factory=dict)
+    uploaded_info: List[UploadInfo] = Field(default_factory=list)
     @computed_field
     def can_edit(self) -> bool:
         return self.status == VideoStatus.PROCESSING.value

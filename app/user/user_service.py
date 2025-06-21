@@ -1,15 +1,14 @@
 from abc import ABC, abstractmethod
-from app.user.dao import user_dao
-from app.user.models import User
-from app.user.result_status import SignInResult, SIgnUpResult
-from app.user.requests import SignInRequest, SignUpRequest
-from app.user.responses import SignInResponse, SignUpResponse
+from .dao import user_dao
+from .models import User
+from .result_status import SignInResult, SIgnUpResult
+from .requests import SignInRequest, SignUpRequest
+from .responses import SignInResponse, SignUpResponse, SignInToYoutubeResponse, GetYoutubeAccessTokenResponse
 import traceback
 import bcrypt
 from app.auth import auth_service
-from app.external_service.external_platform.Youtube import YouTubeService
+from app.external_service.external_platform.Youtube import youtube_service
 from typing import List, Dict
-youtube_service = YouTubeService()
 from app.video.models import Video, UploadInfo
 from app.external_service.external_platform.Youtube.models import StatisticInfo
 from datetime import datetime
@@ -17,6 +16,10 @@ from datetime import datetime
 class user_service(ABC):
     @abstractmethod
     async def sign_in(self, username: str, password: str) -> SignInResponse:
+        pass
+    def sign_in_to_youtube(self, redirect_uri: str) -> SignInToYoutubeResponse:
+        pass
+    def get_youtube_access_token(self, code: str, redirect_uri: str) -> GetYoutubeAccessTokenResponse:
         pass
     async def sign_up(self, username: str, password: str) -> SIgnUpResult:
         pass
@@ -48,7 +51,27 @@ class user_service_v1(user_service):
                                     username="",
                                    access_token="")
         
+    def sign_in_to_youtube(self, redirect_uri: str) -> SignInToYoutubeResponse:
+        try:
+            auth_url = youtube_service.get_authorization_url(redirect_uri=redirect_uri)
+            return SignInToYoutubeResponse(auth_url=auth_url, status_code=200)
+        except Exception as e:
+            print(f"Error during YouTube sign in: {e}")
+            return SignInToYoutubeResponse(auth_url="", status_code=500)
+    
+    
+    def get_youtube_access_token(self, code: str, redirect_uri: str) -> GetYoutubeAccessTokenResponse:
+        try:
+            credentials = youtube_service.get_credentials_from_code(code=code, redirect_uri=redirect_uri)
+            if credentials:
+                return GetYoutubeAccessTokenResponse(access_token=credentials.token, status_code=200)
+            else:
+                return GetYoutubeAccessTokenResponse(access_token="", status_code=400)
+        except Exception as e:
+            print(f"Error obtaining YouTube access token: {e}")
+            return GetYoutubeAccessTokenResponse(access_token="", status_code=500)
         
+
     async def sign_up(self, signUpRequest: SignUpRequest) -> SIgnUpResult:
         try:
             same_user = await user_dao.get_user(signUpRequest.username)

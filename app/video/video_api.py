@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Form, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer
-from app.video.requests import CreateVideoRequest, EditVideoRequest
-from app.video.resposes import (CreateVideoResponse, EditVideoResponse,
-    GetVideoByIdResponse, GetAllVideosResponse)
-from app.video.service import video_service
+from app.common import UploadVideoInfo
+from .requests import CreateVideoRequest, EditVideoRequest
+from .resposes import (CreateVideoResponse, EditVideoResponse,
+                    UploadVideoToYoutubeResponse,
+                    GetVideoByIdResponse, GetAllVideosResponse)
+from .video_service import video_service_v2
 import json
 from app.auth import auth_service
 from app.auth.result_status import ValidationAccessTokenResult
 
+video_service = video_service_v2()
 router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/signin")
@@ -76,3 +79,12 @@ async def get_all_videos(
         raise HTTPException(status_code=videos_data.status_code, detail=videos_data.message)
     
     return videos_data
+
+@router.post("/video/upload/to-youtube", response_model=UploadVideoToYoutubeResponse)
+async def upload_video_to_youtube(request: UploadVideoInfo):
+    response = await video_service.upload_video_to_youtube(request)
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail=response.message)
+    
+    return response
