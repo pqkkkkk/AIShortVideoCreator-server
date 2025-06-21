@@ -36,6 +36,12 @@ class image_service(ABC):
         Generates an image based on a prompt using AI.
         """
         pass
+    @abstractmethod
+    async def get_image_by_id(self, image_public_id: str) -> Image:
+        """
+        Retrieves an image by its public ID.
+        """
+        pass
 class image_service_v1(image_service):
     """
     Implementation of the image_service interface for version 1.
@@ -53,7 +59,13 @@ class image_service_v1(image_service):
         pass
     async def insert_image_data(self, image_data):
         await image_dao.insert_image(image_data)
-
+    
+    async def get_image_by_id(self, image_public_id: str) -> Image:
+        image = await image_dao.get_image_by_id(image_public_id)
+        if not image:
+            return None
+        return image
+    
     async def get_image_from_ai(self, request: GenerateImageRequest) -> GenerateImageResponse:
         try:
             prompt = f"""

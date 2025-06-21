@@ -2,7 +2,9 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from app.image.requests import GenerateImageRequest
 from app.image.responses import GenerateImageResponse
-from .service import image_service
+from .image_service import image_service_v1
+
+image_service = image_service_v1()
 api_router = APIRouter()
 
 @api_router.get("/image")

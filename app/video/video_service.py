@@ -3,6 +3,8 @@ from app.external_service.text_to_speech import tts_service
 from app.external_service.ai import ai_service
 from app.external_service.external_platform.Youtube import youtube_service
 from app.common import UploadVideoInfo
+from app.music_track import music_service
+from app.image import public_image_service
 from moviepy import (AudioFileClip, ColorClip, ImageClip,
                      VideoFileClip, CompositeAudioClip,
                       CompositeVideoClip, TextClip)
@@ -16,7 +18,6 @@ from .models import (TextAttachment, EmojiAttachment, UploadInfo,
 from.result_status import VideoStatus
 from .dao import video_dao
 from abc import ABC, abstractmethod
-from app.music_track import music_service
 import tempfile
 import os
 from fastapi import UploadFile
@@ -45,6 +46,19 @@ class video_service(ABC):
 class video_service_v2(video_service):
     async def get_corresponding_bg_image_temp_path(self, bg_image_public_id: str,
                                                    background_image: UploadFile) -> str:
+        if bg_image_public_id and bg_image_public_id != "":
+            image_data = await public_image_service.get_image_by_id(bg_image_public_id)
+
+            if image_data:
+                response = requests.get(image_data.image_url)
+                if response.status_code == 200:
+                    temp_image = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(image_data.image_url)[1])
+                    temp_image.write(response.content)
+                    temp_image.close()
+                    return temp_image.name
+                else:
+                    return None
+
         if background_image:
             temp_image = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(background_image.filename)[1])
             image_bytes = await background_image.read()
@@ -151,7 +165,7 @@ class video_service_v2(video_service):
                 scene_clip, clips_to_close, temp_paths = await self.handle_each_scene(request.voiceId, scene,
                                                                                       bg_image_temp_path, bg_music_temp_path)
                 if scene_clip is None:
-                    return "error", "error"
+                    raise Exception(f"Failed to create scene clip for scene {idx}")
                 
                 all_clips.append(scene_clip)
                 all_to_close += clips_to_close
@@ -164,6 +178,7 @@ class video_service_v2(video_service):
             final_video.write_videofile(temp_video_file.name, codec="libx264", audio_codec="aac", fps=24)
 
             secure_url, public_id = await storage_service.uploadVideo(temp_video_file.name)
+
             os.remove(temp_video_file.name)
 
             for clip in all_to_close:
@@ -212,6 +227,8 @@ class video_service_v2(video_service):
                 try: text_clip.close()
                 except: pass
                 return None
+            
+
     async def handle_each_emoji_attachment(self, emoji_attachment: EmojiAttachment):
         if emoji_attachment:
             try:
@@ -233,6 +250,8 @@ class video_service_v2(video_service):
                 try: emoji_clip.close()
                 except: pass
                 return None
+            
+
     async def get_video_temp_path(self, secure_url: str) -> str:
         if secure_url:
             response = requests.get(secure_url)
@@ -242,6 +261,8 @@ class video_service_v2(video_service):
                 temp_video.close()
                 return temp_video.name
         return None
+    
+    
     async def edit_video(self, request: EditVideoRequest) -> EditVideoResponse:
         try:
             video_data = await self.get_video_data_by_id(request.public_id)

@@ -37,8 +37,9 @@ class video_script_service_v1(video_script_service):
             Bạn là một trợ lý AI chuyên nghiệp có khả năng tạo kịch bản video dựa trên nội dung và thời gian video.
             Hãy tạo một kịch bản video cho nội dung sau:
             Nội dung: {request.content}
-            Thời gian video: {request.video_duration} giây"""
-            #text_script = await ai_service.get_response(prompt)
+            Thời gian video: {request.video_duration} giây
+            Số lượng cảnh trong video: {request.scene_quantity}"""
+            
             text_script = await asyncio.to_thread(ai_service.get_response, prompt)
 
             return AutoGenerateTextScriptResponse(
