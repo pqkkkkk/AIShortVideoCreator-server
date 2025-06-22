@@ -9,6 +9,7 @@ from moviepy import (AudioFileClip, ColorClip, ImageClip,
                      VideoFileClip, CompositeAudioClip,
                       CompositeVideoClip, TextClip)
 from moviepy import concatenate_videoclips
+from moviepy.video.fx.MaskColor import MaskColor
 from .requests import (CreateVideoRequest, EditVideoRequest,
                                 UploadVideoToYoutubeRequest)
 from .resposes import (CreateVideoResponse, EditVideoResponse, UploadVideoToYoutubeResponse,
@@ -211,46 +212,58 @@ class video_service_v2(video_service):
                 message= "error creating video"
             )
 
-    async def handle_each_text_attachment(self, text_attachment: TextAttachment):
+    async def handle_each_text_attachment_v2(self, text_attachment: TextAttachment,
+                                             parent_clip_width: int, parent_clip_height: int):
         if text_attachment.text:
             try:
-                text_clip = TextClip(text = text_attachment.text ,
+                text_clip = TextClip(text = text_attachment.text,
+                                     color = text_attachment.color_hex,
                                      font_size = text_attachment.font_size,
                                      duration = (text_attachment.end_time - text_attachment.start_time),
                                       font = 'c:\Windows\Fonts\ARIAL.TTF')
                 text_clip.start = text_attachment.start_time
                 text_clip.end = text_attachment.end_time
-                text_clip.color = text_attachment.color_hex
+                
+                left = (parent_clip_width - text_attachment.font_size * len(text_attachment.text)) * text_attachment.position.x
+                top = (parent_clip_height - text_attachment.font_size) * text_attachment.position.y
+                text_clip = text_clip.with_position((left,top))
+
                 return text_clip
             except Exception as e:
                 print(f"Error creating text clip: {e}")
                 try: text_clip.close()
                 except: pass
                 return None
-            
 
-    async def handle_each_emoji_attachment(self, emoji_attachment: EmojiAttachment):
+        return None  
+
+
+    async def handle_each_emoji_attachment_v2(self, emoji_attachment: EmojiAttachment,
+                                              parent_clip_width: int, parent_clip_height: int):
         if emoji_attachment:
             try:
                 emoji_url = f"https://fonts.gstatic.com/s/e/notoemoji/latest/{emoji_attachment.codepoint}/512.gif"
-                emoji_clip = (ImageClip(img=emoji_url)
+                emoji_clip = VideoFileClip(emoji_url)
+                mask_color = MaskColor(color=(255, 255, 255), threshold=0.1, stiffness=1)
+                emoji_clip = mask_color.apply(emoji_clip)
+
+                emoji_clip = (emoji_clip
                             .with_start(emoji_attachment.start_time)
                             .with_duration(emoji_attachment.end_time - emoji_attachment.start_time)
-                            .with_position((emoji_attachment.position.x, emoji_attachment.position.y)))
-                emoji_clip = emoji_clip.resized(height=emoji_attachment.size, width=emoji_attachment.size)
-                # emoji_clip = (ImageClip(img=emoji_url, is_mask=False, transparent=True,
-                #                         duration=(emoji_attachment.end_time - emoji_attachment.start_time)))
-                # emoji_clip.start = emoji_attachment.start_time
-                # emoji_clip.end = emoji_attachment.end_time
-                # emoji_clip.with_position((emoji_attachment.position.x, emoji_attachment.position.y))
-                # emoji_clip.resized(height=emoji_attachment.size, width=emoji_attachment.size)
+                            .resized(height=emoji_attachment.size, width=emoji_attachment.size))
+                
+                left = (parent_clip_width - emoji_attachment.size) * emoji_attachment.position.x
+                top = (parent_clip_height - emoji_attachment.size) * emoji_attachment.position.y
+                emoji_clip = emoji_clip.with_position((left, top))
+
                 return emoji_clip
             except Exception as e:
                 print(f"Error creating emoji clip: {e}")
                 try: emoji_clip.close()
                 except: pass
                 return None
-            
+        
+        return None
 
     async def get_video_temp_path(self, secure_url: str) -> str:
         if secure_url:
@@ -265,7 +278,7 @@ class video_service_v2(video_service):
     
     async def edit_video(self, request: EditVideoRequest) -> EditVideoResponse:
         try:
-            video_data = await self.get_video_data_by_id(request.public_id)
+            video_data = await video_dao.get_video_by_id(request.public_id)
             if not video_data:
                 return EditVideoResponse(
                     public_id=request.public_id,
@@ -281,13 +294,15 @@ class video_service_v2(video_service):
             clips_to_close = []
 
             for text_attachment in request.text_attachments:
-                text_clip = await self.handle_each_text_attachment(text_attachment)
+                text_clip = await self.handle_each_text_attachment_v2(text_attachment,
+                                                                    old_video.size[0], old_video.size[1])
                 if text_clip:
                     text_clips.append(text_clip)
                     clips_to_close.append(text_clip)
 
             for emoji_attachment in request.emoji_attachments:
-                emoji_clip = await self.handle_each_emoji_attachment(emoji_attachment)
+                emoji_clip = await self.handle_each_emoji_attachment_v2(emoji_attachment,
+                                                                        old_video.size[0], old_video.size[1])
                 if emoji_clip:
                     emoji_clips.append(emoji_clip)
                     clips_to_close.append(emoji_clip)
