@@ -1,4 +1,4 @@
-from image import public_image_service
+from app.image import public_image_service
 import asyncio
 
 async def test_get_image_from_ai():

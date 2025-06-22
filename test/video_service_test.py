@@ -3,7 +3,7 @@ from video.dto.requests import CreateVideoRequest
 from video.models import TextAttachment, Position, EmojiAttachment
 import asyncio
 import os
-from db import init_db
+from core.db import init_db
 
 # request = CreateVideoRequest(
 #     script="""

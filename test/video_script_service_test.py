@@ -1,6 +1,6 @@
 from video_script import public_video_script_service
 import asyncio
-from db import init_db
+from core.db import init_db
 
 async def test_get_video_metadata():
     script = "This is a sample script for testing."

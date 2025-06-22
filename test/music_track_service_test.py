@@ -1,5 +1,5 @@
 from music_track import music_service
-from db import init_db
+from core.db import init_db
 import os
 import asyncio
 
