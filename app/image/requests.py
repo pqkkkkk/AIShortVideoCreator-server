@@ -2,5 +2,5 @@ from pydantic import BaseModel
 
 class GenerateImageRequest(BaseModel):
     content: str
-    height: int
-    width: int
+    style: str = "modern"
+    image_ratio: str = "16:9"

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import Form, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer
 from app.common import UploadVideoInfo
-from .requests import CreateVideoRequest, EditVideoRequest
+from .requests import CreateVideoRequest, EditVideoRequest, VideoFilterObject
 from .resposes import (CreateVideoResponse, EditVideoResponse,
                     UploadVideoToYoutubeResponse,
                     GetVideoByIdResponse, GetAllVideosResponse)
@@ -27,7 +27,7 @@ def validate_token(token: str = Depends(oauth2_scheme)):
     else:
         raise HTTPException(status_code=500, detail="Error validating token")
 
-@router.post("/video")
+@router.post("/video", response_model=CreateVideoResponse)
 async def create_video(
     #token: str = Depends(validate_token),
     video_metaData_json: str = Form(...),
@@ -60,7 +60,7 @@ async def edit_video(request: EditVideoRequest,
     return response
 
 
-@router.get("/video/{id}")
+@router.get("/video/{id}",response_model=GetVideoByIdResponse)
 async def get_video_by_id(id: str,
                           #token: str = Depends(validate_token)
                           ):
@@ -70,11 +70,12 @@ async def get_video_by_id(id: str,
     return video
 
 
-@router.get("/video")
+@router.get("/video", response_model=GetAllVideosResponse)
 async def get_all_videos(
+                        filter_object: VideoFilterObject = Query(..., description="Filter object for pagination and user filtering"),
                         #token: str = Depends(validate_token)
                         ):
-    videos_data = await video_service.get_all_videos_data()
+    videos_data = await video_service.get_all_videos_data_paginated(filter_object)
     if videos_data.status_code != 200:
         raise HTTPException(status_code=videos_data.status_code, detail=videos_data.message)
     

@@ -14,7 +14,8 @@ class Video(Document):
     #topic: str
     status: str
     video_url: str
-    #created_at: str
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
     userId: str
     duration: float
     uploaded_info: List[UploadInfo] = Field(default_factory=list)
