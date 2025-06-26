@@ -10,20 +10,22 @@ from moviepy import (AudioFileClip, ColorClip, ImageClip,
                       CompositeVideoClip, TextClip)
 from moviepy import concatenate_videoclips
 from moviepy.video.fx.MaskColor import MaskColor
-from .requests import (CreateVideoRequest, EditVideoRequest,
+from .requests import (CreateVideoRequest, EditVideoRequest, VideoFilterObject,
                                 UploadVideoToYoutubeRequest)
 from .resposes import (CreateVideoResponse, EditVideoResponse, UploadVideoToYoutubeResponse,
                             GetVideoByIdResponse, GetAllVideosResponse)
 from .models import (TextAttachment, EmojiAttachment, UploadInfo,
                      Video, VideoMetadata, Scene)
 from.result_status import VideoStatus
-from .dao import video_dao
+from .video_dao import video_dao_v1
 from abc import ABC, abstractmethod
 import tempfile
 import os
 from fastapi import UploadFile
 import requests
 import datetime
+
+video_dao = video_dao_v1()
 
 class video_service(ABC):
     @abstractmethod
@@ -44,6 +46,8 @@ class video_service(ABC):
         pass
     async def upload_video_to_youtube(request: UploadVideoToYoutubeRequest) -> str:
         pass
+
+
 class video_service_v2(video_service):
     async def get_corresponding_bg_image_temp_path(self, bg_image_public_id: str,
                                                    background_image: UploadFile) -> str:
@@ -387,14 +391,29 @@ class video_service_v2(video_service):
             total_videos = len(videos_data)
 
             
-            return GetAllVideosResponse(videos_data=videos_data,
+            return GetAllVideosResponse(items=videos_data,
                                          total_videos=total_videos,
                                            message="success",status_code=200)
         
         except Exception as e:
             print(f"Error getting all videos: {e}")
-            return GetAllVideosResponse(videos_data=[], total_videos=0,
+            return GetAllVideosResponse(items=[], total_videos=0,
                                         message="error getting all videos", status_code=500)
+    
+    async def get_all_videos_data_paginated(self, filter_object : VideoFilterObject) -> GetAllVideosResponse:
+        try:
+            response =  await video_dao.get_all_videos_paginated(filter_object)
+
+            if response.status_code != 200:
+                raise Exception(response.message)
+            
+            return response
+        except Exception as e:
+            print(f"Error getting paginated videos: {e}")
+            return GetAllVideosResponse(items=[], total_videos=0, total_pages=0,
+                                        current_page_number=filter_object.current_page_number,
+                                        page_size=filter_object.page_size,
+                                        message="error getting paginated videos", status_code=500)
     
     async def upload_video_to_youtube(self,request: UploadVideoInfo):
         try:

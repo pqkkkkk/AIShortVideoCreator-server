@@ -71,7 +71,8 @@ class image_service_v1(image_service):
             prompt = f"""
             Generate an image based on the following prompt: {request.content}
             Ensure the image is high quality and relevant to the prompt.
-            with width: {request.width}, height: {request.height}
+            with style: {request.style}
+            with image ratio: {request.image_ratio}
                             """
             
             image_data = ai_service.generate_image(prompt)

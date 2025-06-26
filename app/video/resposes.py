@@ -17,8 +17,11 @@ class GetVideoByIdResponse(BaseModel):
     status_code: int
 
 class GetAllVideosResponse(BaseModel):
-    videos_data : list[Video]
+    items : list[Video]
     total_videos: int
+    current_page_number: int = 1
+    total_pages: int = 1
+    page_size: int = 10
     message: str
     status_code: int
 

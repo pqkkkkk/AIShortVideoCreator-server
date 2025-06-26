@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from jose import JWTError, jwt
+from jose import jwt
+from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 from datetime import datetime, timedelta
 from app.config import get_env_variable
 from .result_status import ValidationAccessTokenResult
@@ -41,7 +42,11 @@ class auth_service_v1(auth_service):
             
             return ValidationAccessTokenResult.VALID
         except JWTError:
-            return ValidationAccessTokenResult.ERROR
+            return ValidationAccessTokenResult.INVALID
+        except ExpiredSignatureError:
+            return ValidationAccessTokenResult.EXPIRED
+        except JWTClaimsError:
+            return ValidationAccessTokenResult.INVALID
 
     def refresh_access_token(self, token: str) -> str:
         payload = self.validate_access_token(token, Exception("Invalid token"))
