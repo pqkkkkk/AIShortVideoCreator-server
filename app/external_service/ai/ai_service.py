@@ -4,7 +4,7 @@ from google.genai import types
 from PIL import Image
 from app.config import get_env_variable
 from transformers import (AutoTokenizer, AutoModelForSeq2SeqLM)
-import torch
+#import torch
 from huggingface_hub import login
 from diffusers import FluxPipeline
 
@@ -48,31 +48,31 @@ class gemini_service(ai_service):
                 return part.inline_data.data
         return None
 
-class flux_service(ai_service):
-    def __init__(self):
-        login(token=get_env_variable("HUGGINGFACE_ACCESS_TOKEN"))
-        self.pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev",
-                                                  torch_dtype=torch.bfloat16)
-        self.pipe.enable_model_cpu_offload()
+# class flux_service(ai_service):
+#     def __init__(self):
+#         login(token=get_env_variable("HUGGINGFACE_ACCESS_TOKEN"))
+#         self.pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev",
+#                                                   torch_dtype=torch.bfloat16)
+#         self.pipe.enable_model_cpu_offload()
 
-    def get_response(self, prompt):
-        return super().get_response(prompt)
-    def get_response_stream(self, prompt):
-        return super().get_response_stream(prompt)
-    def generate_image(self, prompt):
-        image = self.pipe(
-            prompt,
-            height=1024,
-            width=1024,
-            guidance_scale=3.5,
-            num_inference_steps=50,
-            max_sequence_length=512,
-            generator=torch.Generator("cpu").manual_seed(0)
-        ).images[0]    
+#     def get_response(self, prompt):
+#         return super().get_response(prompt)
+#     def get_response_stream(self, prompt):
+#         return super().get_response_stream(prompt)
+#     def generate_image(self, prompt):
+#         image = self.pipe(
+#             prompt,
+#             height=1024,
+#             width=1024,
+#             guidance_scale=3.5,
+#             num_inference_steps=50,
+#             max_sequence_length=512,
+#             generator=torch.Generator("cpu").manual_seed(0)
+#         ).images[0]    
 
-        image.save("flux-dev.png")
+#         image.save("flux-dev.png")
 
-        return image
+#         return image
 
 class flan_t5_base_service(ai_service):
     def __init__(self):
