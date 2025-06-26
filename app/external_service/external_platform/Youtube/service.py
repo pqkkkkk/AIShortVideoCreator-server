@@ -30,7 +30,8 @@ class PlatformService(ABC):
 class YouTubeService(PlatformService):
     def __init__(self):
         self.api_key = get_env_variable('YOUTUBE_API_KEY')
-        self.client_secret_file = os.path.join(os.path.dirname(__file__), "client_secrets.json")
+        #self.client_secret_file = os.path.join(os.path.dirname(__file__), "client_secrets.json")
+        self.client_secret_file = get_env_variable('YOUTUBE_CLIENT_SECRET_JSON_FILE_PATH')
         self.youtube = build('youtube', 'v3', developerKey=self.api_key)
         #self.dao = videoDao
 

@@ -16,8 +16,6 @@ from fastapi.logger import logger
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     load_dotenv()
-    data_source_url = get_env_variable("DATASOURCE_URL")
-    print(f"Connecting to database at {data_source_url}")
     await init_db()
     yield
  
