@@ -74,19 +74,19 @@ class gemini_service(ai_service):
 
 #         return image
 
-class flan_t5_base_service(ai_service):
-    def __init__(self):
-        self.model_name = "google/flan-t5-base"
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
-    def get_response(self, prompt):
-        inputs = self.tokenizer(prompt, return_tensors="pt")
+# class flan_t5_base_service(ai_service):
+#     def __init__(self):
+#         self.model_name = "google/flan-t5-base"
+#         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+#         self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
+#     def get_response(self, prompt):
+#         inputs = self.tokenizer(prompt, return_tensors="pt")
 
-        outputs = self.model.generate(**inputs, max_length=256, do_sample=False, num_beams=5)
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+#         outputs = self.model.generate(**inputs, max_length=256, do_sample=False, num_beams=5)
+#         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-        return response
-    def get_response_stream(self, prompt):
-        return super().get_response_stream(prompt)
-    def generate_image(self, prompt):
-        return super().generate_image(prompt)
+#         return response
+#     def get_response_stream(self, prompt):
+#         return super().get_response_stream(prompt)
+#     def generate_image(self, prompt):
+#         return super().generate_image(prompt)
