@@ -9,3 +9,4 @@ class UploadVideoInfo(BaseModel):
     category: str
     privateStatus: str
     accessToken: str
+    

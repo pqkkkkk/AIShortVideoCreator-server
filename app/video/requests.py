@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from .models import VideoMetadata, TextAttachment, EmojiAttachment
-
+from enum import Enum
 
 class VideoFilterObject(BaseModel):
     page_size: int = 10
@@ -8,6 +8,20 @@ class VideoFilterObject(BaseModel):
     user_id: str = ""
     status: str = ""
     title: str = ""
+
+class TimeRangeStatistics(Enum):
+    LAST_7_DAYS = "last_7_days"
+    LAST_30_DAYS = "last_30_days"
+    CUSTOM = "custom"
+class TimeUnit(Enum):
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
+class GetVideoCountStatisticsRequest(BaseModel):
+    time_unit: str = TimeUnit.DAY.value  # e.g., "day", "week", "month"
+    time_range: str  # e.g., "last_7_days", "last_30_days", "custom"
+    start_date: str = None  # Optional for custom ranges
+    end_date: str = None  # Optional for custom ranges
 
 class CreateVideoRequest(BaseModel):
     script: str

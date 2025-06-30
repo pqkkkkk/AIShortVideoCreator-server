@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import Form, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer
 from app.common import UploadVideoInfo
-from .requests import CreateVideoRequest, EditVideoRequest, VideoFilterObject
+from .requests import (CreateVideoRequest, EditVideoRequest, VideoFilterObject,
+                       GetVideoCountStatisticsRequest)
 from .resposes import (CreateVideoResponse, EditVideoResponse,
+                    GetVideoCountStatisticsResponse, AllVideoStatisticsResponse,
                     UploadVideoToYoutubeResponse,
                     GetVideoByIdResponse, GetAllVideosResponse)
 from .video_service import video_service_v2
@@ -48,6 +50,24 @@ async def create_video(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+@router.get("/video/statistics", response_model=AllVideoStatisticsResponse)
+async def get_all_videos_statistics():
+    response = await video_service.get_all_videos_statistics()
+
+    if(response.status_code != 200):
+        raise HTTPException(status_code=response.status_code, detail=response.message)
+    
+    return response
+@router.get("/video/statistics/video_count", response_model=GetVideoCountStatisticsResponse)
+async def get_video_count_statistics(
+                    request: GetVideoCountStatisticsRequest = Query(..., description="Request object for video count statistics")
+                    ):
+    response = await video_service.get_video_count_statistics(request)
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail=response.message)
+    
+    return response
 
 @router.put("/video/{id}",response_model=EditVideoResponse)
 async def edit_video(request: EditVideoRequest,

@@ -11,17 +11,21 @@ from moviepy import (AudioFileClip, ColorClip, ImageClip,
 from moviepy import concatenate_videoclips
 from moviepy.video.fx.MaskColor import MaskColor
 from .requests import (CreateVideoRequest, EditVideoRequest, VideoFilterObject,
-                                UploadVideoToYoutubeRequest)
+                       GetVideoCountStatisticsRequest, UploadVideoToYoutubeRequest)
 from .resposes import (CreateVideoResponse, EditVideoResponse, UploadVideoToYoutubeResponse,
-                            GetVideoByIdResponse, GetAllVideosResponse)
+                       AllVideoStatisticsResponse,
+                       VideoCountStatisticsItem,
+                       GetVideoCountStatisticsResponse, GetVideoByIdResponse, GetAllVideosResponse)
 from .models import (TextAttachment, EmojiAttachment, UploadInfo,
+                     VideoStatisticsInfo,
                      Video, VideoMetadata, Scene)
 from.result_status import VideoStatus
 from .video_dao import video_dao_v1
 from abc import ABC, abstractmethod
 import tempfile
 import os
-from fastapi import UploadFile
+from fastapi import UploadFile, Depends
+from fastapi.logger import logger
 import requests
 import datetime
 
@@ -361,6 +365,19 @@ class video_service_v2(video_service):
         try:
             video_data = await video_dao.get_video_by_id(id)
 
+            youtube_video_ids = [info.videoId for info in video_data.uploaded_info if info.platform == "youtube"]
+            stats = youtube_service.getStatisticsInfoBatch(youtube_video_ids)
+
+            if stats:
+                for info in video_data.uploaded_info:
+                    if info.platform == "youtube":
+                        stat = next((s for s in stats if s["video_id"] == info.videoId), None)
+                        if stat:
+                            info.statistics_info.view_count = stat["view_count"]
+                            info.statistics_info.like_count = stat["like_count"]
+                            info.statistics_info.favorite_count = stat["favorite_count"]
+                            info.statistics_info.comment_count = stat["comment_count"]
+        
             if not video_data:
                 return GetVideoByIdResponse(
                     video_data=None,
@@ -384,30 +401,136 @@ class video_service_v2(video_service):
                 status_code=500
             )
     
-
-    async def get_all_videos_data(self) -> GetAllVideosResponse:
+    async def get_all_videos_statistics(self) -> AllVideoStatisticsResponse:
         try:
-            videos_data = await  video_dao.get_all_videos()
-            total_videos = len(videos_data)
+            videos = await video_dao.get_all_videos()
+            total_videos = len(videos)
+            total_youtube_uploaded_videos = sum(1 for video in videos if
+                                                video.uploaded_info and
+                                                any(info.platform == "youtube" for info in video.uploaded_info))
+            if not videos:
+                raise Exception("error getting uploaded videos info")
 
-            
-            return GetAllVideosResponse(items=videos_data,
-                                         total_videos=total_videos,
-                                           message="success",status_code=200)
-        
+            youtube_video_ids = [video.uploaded_info[0].videoId
+                                for video in videos if video.uploaded_info and video.uploaded_info[0].platform == "youtube"]
+            stats = youtube_service.getStatisticsInfoBatch(youtube_video_ids)
+
+            total_view_count = sum(stat["view_count"] for stat in stats if stat)
+            total_like_count = sum(stat["like_count"] for stat in stats if stat)
+            total_favorite_count = sum(stat["favorite_count"] for stat in stats if stat)
+            total_comment_count = sum(stat["comment_count"] for stat in stats if stat)
+
+            statistics_info = VideoStatisticsInfo(
+                view_count=total_view_count,
+                like_count=total_like_count,
+                favorite_count=total_favorite_count,
+                comment_count=total_comment_count
+            )
+            return AllVideoStatisticsResponse(
+                statistics_info=statistics_info,
+                total_youtube_uploaded_videos=total_youtube_uploaded_videos,
+                total_videos=total_videos,
+                status_code=200,
+                message="success"
+            )
         except Exception as e:
-            print(f"Error getting all videos: {e}")
-            return GetAllVideosResponse(items=[], total_videos=0,
-                                        message="error getting all videos", status_code=500)
-    
-    async def get_all_videos_data_paginated(self, filter_object : VideoFilterObject) -> GetAllVideosResponse:
+            logger.exception("Exception occurred while getting all videos statistics")
+            return AllVideoStatisticsResponse(
+                statistics_info=None,
+                total_videos=0,
+                status_code=500,
+                message="error getting all videos statistics"
+            )
+    async def get_video_count_statistics(self, request: GetVideoCountStatisticsRequest) -> GetVideoCountStatisticsResponse:
         try:
-            response =  await video_dao.get_all_videos_paginated(filter_object)
+            statistics_strategy = {
+                "last_7_days": self.get_video_count_statistics_last_7_days,
+                "last_30_days": self.get_video_count_statistics_last_7_days,  # Assuming similar logic for 30 days
+                "custom": lambda req: video_dao.get_video_count_statistics(req.start_date, req.end_date)
+            }
 
+            if request.time_range not in statistics_strategy:
+                raise ValueError(f"Invalid time range: {request.time_range}")
+            
+            response = await statistics_strategy[request.time_range](request)
             if response.status_code != 200:
                 raise Exception(response.message)
             
             return response
+        except Exception as e:
+            logger.error(f"Error getting video count statistics: {e}")
+            return GetVideoCountStatisticsResponse(
+                timely_video_count=[],
+                time_unit=request.time_unit,
+                time_range=request.time_range,
+                status_code=500,
+                message="error getting video count statistics"
+            )
+    async def get_video_count_statistics_last_7_days(self, request: GetVideoCountStatisticsRequest) -> GetVideoCountStatisticsResponse:
+        try:
+            end_date = datetime.datetime.now()
+            start_date = end_date - datetime.timedelta(days=6)
+            video_count_result = await video_dao.get_video_count_statistics(start_date, end_date)
+            if not video_count_result:
+                raise Exception("No video count statistics found for the last 7 days")
+            
+            timely_video_count = []
+
+            for i in range(7):
+                current_date = (start_date + datetime.timedelta(days=i)).date()
+                count = next((item["count"] for item in video_count_result if item["date"].date() == current_date), 0)
+                
+                timely_video_count.append(VideoCountStatisticsItem(
+                    time=current_date.strftime("%Y-%m-%d"),
+                    count=count
+                ))
+            
+            return GetVideoCountStatisticsResponse(
+                timely_video_count=timely_video_count,
+                time_unit=request.time_unit,
+                time_range=request.time_range,
+                status_code=200,
+                message="success"
+            )
+        except Exception as e:
+            logger.error(f"Error getting video count statistics for last 7 days: {e}")
+            return GetVideoCountStatisticsResponse(
+                timely_video_count=[],
+                time_unit=request.time_unit,
+                time_range=request.time_range,
+                status_code=500,
+                message="error getting video count statistics for last 7 days"
+            )
+    async def get_all_videos_data_paginated(self, filter_object : VideoFilterObject) -> GetAllVideosResponse:
+        try:
+            videos, total_videos, total_pages = await video_dao.get_all_videos_paginated(filter_object=filter_object)
+
+            youtube_video_ids = [youtube_uploaded_info.videoId for video in videos
+                                 for youtube_uploaded_info in video.uploaded_info
+                                 if youtube_uploaded_info.platform == "youtube"]
+            stats = youtube_service.getStatisticsInfoBatch(youtube_video_ids)
+
+            if stats:
+                for video in videos:
+                    video.uploaded_info = [info for info in video.uploaded_info if info.platform == "youtube"]
+                    if video.uploaded_info:
+                        youtube_info = video.uploaded_info[0]
+                        stat = next((s for s in stats if s["video_id"] == youtube_info.videoId), None)
+                        if stat:
+                            youtube_info.statistics_info.view_count = stat["view_count"]
+                            youtube_info.statistics_info.like_count = stat["like_count"]
+                            youtube_info.statistics_info.favorite_count = stat["favorite_count"]
+                            youtube_info.statistics_info.comment_count = stat["comment_count"]
+            
+            return GetAllVideosResponse(
+                items=videos,
+                total_videos=total_videos,
+                total_pages=total_pages,
+                current_page_number=filter_object.current_page_number,
+                page_size=filter_object.page_size,
+                message="success",
+                status_code=200
+            )
         except Exception as e:
             print(f"Error getting paginated videos: {e}")
             return GetAllVideosResponse(items=[], total_videos=0, total_pages=0,

@@ -229,6 +229,50 @@ class YouTubeService(PlatformService):
                 favoriteCount=int(stats.get("favoriteCount", 0))
             )
         else:
-            return StatisticInfo(id=videoId)            
+            return StatisticInfo(id=videoId)
+
+    def getStatisticsInfoBatch(self, videoIds: List[str]) -> Dict[str, dict]:
+        """ Get statistics for a batch of video IDs.
+        Args:
+            videoIds (List[str]): List of YouTube video IDs.
+        Returns:
+            List[dict]: A list of dictionaries containing statistics for each video.
+        Example:
+            [
+                {
+                    "platform": "youtube",
+                    "video_id": "abc123",
+                    "view_count": 1000,
+                    "like_count": 100,
+                    "favorite_count": 50,
+                    "comment_count": 10
+                },
+                ...
+            ]
+        """
+        try:
+            self.youtube = build('youtube', 'v3', developerKey=self.api_key)
+            request = self.youtube.videos().list(
+                part="statistics",
+                id=",".join(videoIds)
+            )
+            response = request.execute()
+            
+            stats_list = []
+            for item in response.get('items', []):
+                video_id = item['id']
+                stats = item.get('statistics', {})
+                stats_list.append({
+                    "platform": "youtube",
+                    "video_id": video_id,
+                    "view_count": int(stats.get("viewCount", 0)),
+                    "like_count": int(stats.get("likeCount", 0)),
+                    "favorite_count": int(stats.get("favoriteCount", 0)),
+                    "comment_count": int(stats.get("commentCount", 0))
+                })
+            
+            return stats_list    
+        except Exception as e:
+            return None        
         
     

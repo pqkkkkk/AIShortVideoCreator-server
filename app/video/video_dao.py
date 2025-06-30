@@ -2,6 +2,7 @@ from app.video.models import Video
 from abc import ABC, abstractmethod
 from .requests import VideoFilterObject
 from .resposes import GetAllVideosResponse
+from .models import UploadInfo
 from beanie.operators import And, RegEx
 
 class video_dao(ABC):
@@ -33,10 +34,24 @@ class video_dao_v1(video_dao):
     async def get_video_by_id(self, id: str) -> Video:
         """Retrieve a video by its ID."""
         return await Video.find_one(Video.public_id == id)
-
+    
     async def get_all_videos(self) -> list[Video]:
         """Retrieve all videos from the database."""
         return await Video.find_all().to_list()
+    
+    async def get_all_videos_count(self) -> int:
+        """Retrieve the count of all videos in the database."""
+        return await Video.find_all().count()
+    
+    async def get_uploaded_info_of_uploaded_videos(self):
+        try:
+            result = await Video.find_all().project(UploadInfo).to_list()
+            return result
+        except Exception as e:
+            print(f"Error getting uploaded videos info: {e}")
+            raise e
+    
+
     async def get_all_videos_paginated(self, filter_object: VideoFilterObject) -> GetAllVideosResponse:
         """Retrieve all videos from the database with pagination."""
         conditions = []
@@ -62,15 +77,52 @@ class video_dao_v1(video_dao):
                     .limit(filter_object.page_size)
                     .to_list())
         
-        return GetAllVideosResponse(
-            items=videos,
-            total_videos=total_videos,
-            current_page_number=filter_object.current_page_number,
-            total_pages=total_pages,
-            page_size=filter_object.page_size,
-            message="Videos retrieved successfully",
-            status_code=200
-        )
+        return videos, total_videos, total_pages
+    
+    async def get_video_count_statistics(self, start_date, end_date):
+        """Retrieve video count statistics within a specified date range."""
+        try:
+            pipeline = [
+                {
+                    "$match": {
+                        "created_at": {
+                            "$gte": start_date,
+                            "$lte": end_date
+                        }
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "year": {"$year": "$created_at"},
+                            "month": {"$month": "$created_at"},
+                            "day": {"$dayOfMonth": "$created_at"}
+                        },
+                        "count": {"$sum": 1}
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "date": {
+                            "$dateFromParts": {
+                                "year": "$_id.year",
+                                "month": "$_id.month",
+                                "day": "$_id.day"
+                            }
+                        },
+                        "count": 1
+                    }
+                },
+                {
+                    "$sort": {"date": 1}
+                }
+            ]
+            result = await Video.aggregate(pipeline).to_list()
+            return result
+        except Exception as e:
+            print(f"Error getting video count statistics: {e}")
+            raise e
         
 
         

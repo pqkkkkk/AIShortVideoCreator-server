@@ -3,10 +3,19 @@ from typing import Dict, List
 from datetime import datetime
 from beanie import Document
 from .result_status import VideoStatus
+
+
+class VideoStatisticsInfo(BaseModel):
+    view_count: int = 0
+    like_count: int = 0
+    favorite_count: int = 0
+    comment_count: int = 0
+
 class UploadInfo(BaseModel):
     platform: str
     videoId: str
     uploadedAt: datetime
+    statistics_info: VideoStatisticsInfo = Field(default_factory=VideoStatisticsInfo)
 
 class Video(Document):
     public_id: str
