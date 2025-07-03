@@ -69,13 +69,13 @@ class image_service_v1(image_service):
     async def get_image_from_ai(self, request: GenerateImageRequest) -> GenerateImageResponse:
         try:
             prompt = f"""
-            Generate an image based on the following prompt: {request.content}
+            Generate an image based with image description: {request.content}
             Ensure the image is high quality and relevant to the prompt.
             with style: {request.style}
             with image ratio: {request.image_ratio}
                             """
             
-            image_data = ai_service.generate_image(prompt)
+            image_data = await ai_service.generate_image_async(prompt)
             if not image_data:
                 raise ValueError("No image data returned from AI service")
             

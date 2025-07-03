@@ -33,7 +33,7 @@ async def get_youtube_accesstoken(code: str = Query(..., description="The author
                                    redirect_uri: str = Query(..., description="The redirect URI for YouTube OAuth")
                                 ):
     try:
-        response = user_service.get_youtube_access_token(code=code,redirect_uri=redirect_uri)
+        response = await user_service.get_youtube_access_token(code=code,redirect_uri=redirect_uri)
 
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail="Failed to obtain YouTube access token")

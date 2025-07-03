@@ -4,7 +4,7 @@ from app.image import image_api
 from app.user import user_api
 from app.music_track import music_api
 from app.video_script import video_script_api
-from app.video import video_api
+from app.video import video_api, video_api_v2
 from app.trending import trending_api
 from app.db import init_db
 from app.config import get_env_variable
@@ -13,18 +13,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from fastapi.logger import logger
 from concurrent.futures import ProcessPoolExecutor
+from app.common import thread_pool_manager
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     load_dotenv()
     await init_db()
 
-    app.state.process_pool = ProcessPoolExecutor(
-        max_workers= 4
-    )
+    thread_pool_manager.initialize(max_workers=10)
+
     yield
 
-    app.state.process_pool.shutdown(wait=True)
+    thread_pool_manager.shutdown()
  
 app = FastAPI(lifespan=lifespan)
 
@@ -33,6 +33,7 @@ app.include_router(user_api, prefix="/api/v1", tags=["user"])
 app.include_router(music_api, prefix="/api/v1", tags=["music"])
 app.include_router(video_script_api, prefix="/api/v1", tags=["video_script"])
 app.include_router(video_api, prefix="/api/v1", tags=["video"])
+app.include_router(video_api_v2, prefix="/api/v2", tags=["video_v2"])
 app.include_router(trending_api, prefix="/api/v1", tags=["trending"])
 
 app.add_middleware(

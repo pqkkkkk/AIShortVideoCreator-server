@@ -8,13 +8,12 @@ from .resposes import (CreateVideoResponse, EditVideoResponse,
                     GetVideoCountStatisticsResponse, AllVideoStatisticsResponse,
                     UploadVideoToYoutubeResponse,
                     GetVideoByIdResponse, GetAllVideosResponse)
-from .video_service import video_service_v1
+from .video_service import video_service_v2
 import json
 from app.auth import auth_service
 from app.auth.result_status import ValidationAccessTokenResult
 
-
-video_service = video_service_v1()
+video_service = video_service_v2()
 router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/signin")
@@ -29,7 +28,6 @@ def validate_token(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid token")
     else:
         raise HTTPException(status_code=500, detail="Error validating token")
-
 
 @router.post("/video", response_model=CreateVideoResponse)
 async def create_video(

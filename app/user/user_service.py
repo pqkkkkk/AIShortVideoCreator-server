@@ -7,7 +7,7 @@ from .responses import SignInResponse, SignUpResponse, SignInToYoutubeResponse, 
 import traceback
 import bcrypt
 from app.auth import auth_service
-from app.external_service.external_platform.Youtube import youtube_service
+from app.external_service.external_platform.Youtube import youtube_service, youtube_service_async
 from typing import List, Dict
 from app.video.models import Video, UploadInfo
 from app.external_service.external_platform.Youtube.models import StatisticInfo
@@ -53,16 +53,16 @@ class user_service_v1(user_service):
         
     def sign_in_to_youtube(self, redirect_uri: str) -> SignInToYoutubeResponse:
         try:
-            auth_url = youtube_service.get_authorization_url(redirect_uri=redirect_uri)
+            auth_url = youtube_service_async.get_authorization_url(redirect_uri=redirect_uri)
             return SignInToYoutubeResponse(auth_url=auth_url, status_code=200)
         except Exception as e:
             print(f"Error during YouTube sign in: {e}")
             return SignInToYoutubeResponse(auth_url="", status_code=500)
     
     
-    def get_youtube_access_token(self, code: str, redirect_uri: str) -> GetYoutubeAccessTokenResponse:
+    async def get_youtube_access_token(self, code: str, redirect_uri: str) -> GetYoutubeAccessTokenResponse:
         try:
-            credentials = youtube_service.get_credentials_from_code(code=code, redirect_uri=redirect_uri)
+            credentials = await youtube_service_async.get_credentials_from_code(code=code, redirect_uri=redirect_uri)
             if credentials:
                 return GetYoutubeAccessTokenResponse(access_token=credentials.token, status_code=200)
             else:

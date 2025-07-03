@@ -38,9 +38,15 @@ class video_script_service_v1(video_script_service):
             Hãy tạo một kịch bản video cho nội dung sau:
             Nội dung: {request.content}
             Thời gian video: {request.video_duration} giây
-            Số lượng cảnh trong video: {request.scene_quantity}"""
+            Số lượng cảnh trong video: {request.scene_quantity}
+            mỗi cảnh gồm các thông tin:
+            - thời điểm bắt đầu và kết thúc
+            - Lời thoại
+            - Mô tả về ảnh nền cho ảnh này
+            - Mô tả về nhạc nền cho cảnh này
+            Hãy đảm bảo rằng kịch bản video được tạo ra có cấu trúc rõ ràng và dễ hiểu."""
             
-            text_script = await asyncio.to_thread(ai_service.get_response, prompt)
+            text_script = await ai_service.get_response_async(prompt)
 
             return AutoGenerateTextScriptResponse(
                 message = AutoGenerateTextScriptResult.SUCCESS.value,
@@ -108,7 +114,9 @@ class video_script_service_v1(video_script_service):
                 "end_time": "thời gian kết thúc của cảnh (theo giây)",
                 "text": "Nội dung văn bản cho cảnh này",
                 "background_image": "URL của hình ảnh nền cho cảnh này (nếu có)",
+                "background_image_description": "Mô tả về hình ảnh nền cho cảnh này (nếu có)",
                 "background_music": "URL của nhạc nền cho cảnh này (nếu có)",
+                "background_music_description": "Mô tả về nhạc nền cho cảnh này (nếu có)"
                 }}
             ]
             }}
@@ -140,7 +148,7 @@ class video_script_service_v1(video_script_service):
     async def get_video_metadata(self, script: str) -> GetVideoMetadataResponse:
         try:
             prompt = self.create_prompt_to_convert_script_to_object(script)
-            response_text = await asyncio.to_thread(ai_service.get_response, prompt)
+            response_text = await ai_service.get_response_async(prompt)
             
             video_metadata_json = self.get_json_content_from_response(response_text)
             if not video_metadata_json:

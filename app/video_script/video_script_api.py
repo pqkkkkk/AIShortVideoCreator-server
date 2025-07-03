@@ -34,7 +34,7 @@ async def GetVoices(gender: str = Query(default="")):
 async def getVoice(id):
     return await video_script_service.getVoiceById(id=id)
 
-@router.post("/video_script")
+@router.post("/video_script", response_model=AutoGenerateTextScriptResponse)
 async def AutoGenerateVideoScript(request: AutoGenerateScriptRequest, token: str = Depends(validate_token)):
     response = await video_script_service.generateTextScript(request=request)
     if response and response.result == AutoGenerateTextScriptResult.SUCCESS:
@@ -50,7 +50,7 @@ async def AutoGenerateVideoScript(request: AutoGenerateScriptRequest, token: str
         raise HTTPException(status_code=500,
                             detail=response.message if response else "Failed to generate video script")
     
-@router.post("/video_script/video_metadata")
+@router.post("/video_script/video_metadata", response_model=GetVideoMetadataResponse)
 async def GetVideoMetadata(request: GetVideoMetadataRequest, token: str = Depends(validate_token)):
     response = await video_script_service.get_video_metadata(request.script)
     if response and response.result == ConvertToVideoMetadataResult.SUCCESS:
