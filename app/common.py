@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
-import atexit
+from fastapi.security import OAuth2PasswordBearer
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/signin")
+
 
 class UploadVideoInfo(BaseModel):
     video_public_id: str
