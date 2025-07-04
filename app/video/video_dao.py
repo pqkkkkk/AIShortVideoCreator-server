@@ -4,6 +4,7 @@ from .requests import VideoFilterObject
 from .resposes import GetAllVideosResponse
 from .models import UploadInfo
 from beanie.operators import And, RegEx
+import pymongo
 
 class video_dao(ABC):
     @abstractmethod
@@ -72,9 +73,13 @@ class video_dao_v1(video_dao):
         total_pages = (total_videos // filter_object.page_size) + (1 if total_videos % filter_object.page_size > 0 else 0)
         skip = (filter_object.current_page_number - 1) * filter_object.page_size
         
+        # Convert order_direction string to sort format for Beanie
+        sort_field = f"{'-' if filter_object.order_direction == 'desc' else ''}{filter_object.order_by}"
+        
         videos = await  (query
                     .skip(skip)
                     .limit(filter_object.page_size)
+                    .sort(sort_field)
                     .to_list())
         
         return videos, total_videos, total_pages

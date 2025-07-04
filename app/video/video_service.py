@@ -8,6 +8,7 @@ from app.image import public_image_service
 from moviepy import (AudioFileClip, ColorClip, ImageClip,
                      VideoFileClip, CompositeAudioClip,
                       CompositeVideoClip, TextClip)
+from moviepy.video.tools.subtitles import SubtitlesClip
 from moviepy import concatenate_videoclips
 from moviepy.video.fx.MaskColor import MaskColor
 from .requests import (CreateVideoRequest, EditVideoRequest, VideoFilterObject,
@@ -19,6 +20,8 @@ from .resposes import (CreateVideoResponse, EditVideoResponse, UploadVideoToYout
 from .models import (TextAttachment, EmojiAttachment, UploadInfo,
                      VideoStatisticsInfo,
                      Video, VideoMetadata, Scene)
+from .subtitle_service import create_subtitles, create_subtitles_clip
+from .text_service import handle_each_text_attachment
 from.result_status import VideoStatus
 from .video_dao import video_dao_v1
 from abc import ABC, abstractmethod
@@ -168,7 +171,8 @@ class video_service_v2():
                 except Exception as e:
                     print(f"Error writing video file: {e}")
                     return False
-                
+    
+
     async def create_video(self, request : CreateVideoRequest,
                             background_images: list[UploadFile],
                             background_musics: list[UploadFile]):
@@ -190,6 +194,7 @@ class video_service_v2():
 
                 scene_clip, clips_to_close, temp_paths = await self.handle_each_scene(request.voiceId, scene,
                                                                                       bg_image_temp_path, bg_music_temp_path)
+                
                 if scene_clip is None:
                     raise Exception(f"Failed to create scene clip for scene {idx}")
                 
@@ -197,7 +202,15 @@ class video_service_v2():
                 all_to_close += clips_to_close
                 all_temp_paths += temp_paths
             
+            
             final_video = concatenate_videoclips(all_clips, method="compose")
+
+            subtitles = create_subtitles(all_clips, request.videoMetadata)
+            subtitles_clip = create_subtitles_clip(subtitles)
+            all_to_close.append(subtitles_clip)
+
+            final_video_with_subtitles = CompositeVideoClip([final_video,
+                                                            subtitles_clip.with_position(("center", final_video.size[1] - 50))])
 
             temp_video_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
             temp_video_file.close()
@@ -208,7 +221,7 @@ class video_service_v2():
             await loop.run_in_executor(
                 thread_pool_manager.get_pool(),
                 self.write_video_file_with_moviepy,
-                final_video,
+                final_video_with_subtitles,
                 temp_video_file.name
             )
 
@@ -245,31 +258,6 @@ class video_service_v2():
                 secure_url="",
                 message= "error creating video"
             )
-
-    async def handle_each_text_attachment_v2(self, text_attachment: TextAttachment,
-                                             parent_clip_width: int, parent_clip_height: int):
-        if text_attachment.text:
-            try:
-                text_clip = TextClip(text = text_attachment.text,
-                                     color = text_attachment.color_hex,
-                                     font_size = text_attachment.font_size,
-                                     duration = (text_attachment.end_time - text_attachment.start_time),
-                                      font = 'c:\Windows\Fonts\ARIAL.TTF')
-                text_clip.start = text_attachment.start_time
-                text_clip.end = text_attachment.end_time
-                
-                left = (parent_clip_width - text_attachment.font_size * len(text_attachment.text)) * text_attachment.position.x
-                top = (parent_clip_height - text_attachment.font_size) * text_attachment.position.y
-                text_clip = text_clip.with_position((left,top))
-
-                return text_clip
-            except Exception as e:
-                print(f"Error creating text clip: {e}")
-                try: text_clip.close()
-                except: pass
-                return None
-
-        return None  
 
 
     async def handle_each_emoji_attachment_v2(self, emoji_attachment: EmojiAttachment,
@@ -375,8 +363,8 @@ class video_service_v2():
             paths_to_remove = [old_video_temp_path]
 
             for text_attachment in request.text_attachments:
-                text_clip = await self.handle_each_text_attachment_v2(text_attachment,
-                                                                    old_video.size[0], old_video.size[1])
+                text_clip = await handle_each_text_attachment(text_attachment,
+                                                            old_video.size[0], old_video.size[1])
                 if text_clip:
                     text_clips.append(text_clip)
                     clips_to_close.append(text_clip)
