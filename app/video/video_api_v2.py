@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import Form, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer
 from app.common import UploadVideoInfo
-from .requests import (CreateVideoRequest, EditVideoRequest, VideoFilterObject,
+from .requests import (CreateVideoRequest, EditVideoRequest, VideoFilterObject, AllVideoStatisticsRequest,
                        GetVideoCountStatisticsRequest)
 from .resposes import (CreateVideoResponse, EditVideoResponse,
                     GetVideoCountStatisticsResponse, AllVideoStatisticsResponse,
@@ -16,22 +16,9 @@ from app.auth.result_status import ValidationAccessTokenResult
 video_service = video_service_v2()
 router = APIRouter()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/signin")
-
-def validate_token(token: str = Depends(oauth2_scheme)):
-    validation_result = auth_service.validate_access_token(token)
-    if validation_result == ValidationAccessTokenResult.VALID:
-        return token
-    elif validation_result == ValidationAccessTokenResult.EXPIRED:
-        raise HTTPException(status_code=401, detail="Token expired")
-    elif validation_result == ValidationAccessTokenResult.INVALID:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    else:
-        raise HTTPException(status_code=500, detail="Error validating token")
 
 @router.post("/video", response_model=CreateVideoResponse)
 async def create_video(
-    #token: str = Depends(validate_token),
     video_metaData_json: str = Form(...),
     background_images: list[UploadFile] = File(default=[]),
     background_musics: list[UploadFile] = File(default=[])
@@ -51,8 +38,8 @@ async def create_video(
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.get("/video/statistics", response_model=AllVideoStatisticsResponse)
-async def get_all_videos_statistics():
-    response = await video_service.get_all_videos_statistics()
+async def get_all_videos_statistics(request: AllVideoStatisticsRequest = Query(...)):
+    response = await video_service.get_all_videos_statistics(request=request)
 
     if(response.status_code != 200):
         raise HTTPException(status_code=response.status_code, detail=response.message)

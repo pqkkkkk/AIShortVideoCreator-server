@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from .requests import SignInRequest, SignUpRequest
 from .responses import SignInResponse, SignUpResponse, SignInToYoutubeResponse, GetYoutubeAccessTokenResponse
 from .user_service import user_service_v1
@@ -13,10 +13,10 @@ api_router = APIRouter()
 async def sign_in(signInRequest : SignInRequest):
     sign_in_response = await user_service.sign_in(signInRequest.username, signInRequest.password)
 
-    if sign_in_response.status == SignInResult.SUCCESS:
+    if sign_in_response.status_code == status.HTTP_200_OK:
         return sign_in_response
     else:
-        raise HTTPException(status_code=400, detail=sign_in_response.status.value)
+        raise HTTPException(status_code=sign_in_response.status_code, detail=sign_in_response.message)
 
 
 @api_router.get("/user/signin/to-youtube", response_model=SignInToYoutubeResponse)
@@ -52,7 +52,3 @@ async def sign_up(signUpRequest: SignUpRequest):
         raise HTTPException(status_code=400, detail=sign_up_result.value)
     else:
         return SignUpResponse(message=sign_up_result.value, status=sign_up_result, username=signUpRequest.username)
-
-@api_router.get("/user/{userId}/statistic", response_model=List[StatisticInfo])
-async def getStatistic(userId: str):
-    return await user_service.statistic(userId)

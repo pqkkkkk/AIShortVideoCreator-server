@@ -2,7 +2,7 @@ from enum import Enum
 
 class SignInResult(Enum):
     SUCCESS = "success"
-    WRONG_PASSWORD = "wưrong password"
+    WRONG_PASSWORD = "wrong password"
     USER_NOT_FOUND = "User not found"
     UNKNOWN_ERROR = "Unknown error"
 class SIgnUpResult(Enum):

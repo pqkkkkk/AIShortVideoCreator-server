@@ -25,10 +25,14 @@ class TimeUnit(Enum):
     WEEK = "week"
     MONTH = "month"
 class GetVideoCountStatisticsRequest(BaseModel):
+    user_id: str = None
     time_unit: str = TimeUnit.DAY.value  # e.g., "day", "week", "month"
     time_range: str  # e.g., "last_7_days", "last_30_days", "custom"
     start_date: str = None  # Optional for custom ranges
     end_date: str = None  # Optional for custom ranges
+
+class AllVideoStatisticsRequest(BaseModel):
+    user_id: str = None
 
 class CreateVideoRequest(BaseModel):
     script: str = ""

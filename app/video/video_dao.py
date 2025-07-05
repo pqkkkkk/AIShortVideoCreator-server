@@ -36,8 +36,10 @@ class video_dao_v1(video_dao):
         """Retrieve a video by its ID."""
         return await Video.find_one(Video.public_id == id)
     
-    async def get_all_videos(self) -> list[Video]:
+    async def get_all_videos(self, user_id: str = None) -> list[Video]:
         """Retrieve all videos from the database."""
+        if user_id:
+            return await Video.find(Video.userId == user_id).to_list()
         return await Video.find_all().to_list()
     
     async def get_all_videos_count(self) -> int:
@@ -84,7 +86,7 @@ class video_dao_v1(video_dao):
         
         return videos, total_videos, total_pages
     
-    async def get_video_count_statistics(self, start_date, end_date):
+    async def get_video_count_statistics(self, start_date, end_date, user_id: str = None):
         """Retrieve video count statistics within a specified date range."""
         try:
             pipeline = [
@@ -93,7 +95,8 @@ class video_dao_v1(video_dao):
                         "created_at": {
                             "$gte": start_date,
                             "$lte": end_date
-                        }
+                        },
+                        "userId": user_id if user_id else {"$exists": True} 
                     }
                 },
                 {

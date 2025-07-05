@@ -38,13 +38,17 @@ class video_script_service_v1(video_script_service):
             Hãy tạo một kịch bản video cho nội dung sau:
             Nội dung: {request.content}
             Thời gian video: {request.video_duration} giây
-            Số lượng cảnh trong video: {request.scene_quantity}
+            Số lượng cảnh trong video: {request.scene_quantity if request.scene_quantity > 0 else
+                                        "tự động xác định sao cho hợp lý với nội dung và thời gian video"}
             mỗi cảnh gồm các thông tin:
             - thời điểm bắt đầu và kết thúc
             - Lời thoại
             - Mô tả về ảnh nền cho ảnh này
             - Mô tả về nhạc nền cho cảnh này
-            Hãy đảm bảo rằng kịch bản video được tạo ra có cấu trúc rõ ràng và dễ hiểu."""
+            Hãy đảm bảo rằng kịch bản video được tạo ra có cấu trúc rõ ràng và
+            dễ hiểu và mỗi cảnh chỉ chứa 1 mô tả cho ảnh nền, nhạc nền và lời thoại.
+            Không chia nhỏ khoảng thời gian ở mỗi cảnh nữa
+            """
             
             text_script = await ai_service.get_response_async(prompt)
 
