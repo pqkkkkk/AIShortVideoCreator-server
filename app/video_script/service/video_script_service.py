@@ -4,9 +4,9 @@ from app.video_script.models import Voice
 from app.external_service.storage import storage_service
 from fastapi import HTTPException
 from app.external_service.text_to_speech import tts_service
-from app.external_service.ai import ai_service
+from app.external_service.ai import gemini_ai_service, ai_service_manager
 from app.video_script.responses import GetVideoMetadataResponse, AutoGenerateTextScriptResponse
-from app.video_script.requests import AutoGenerateScriptRequest
+from app.video_script.requests import AutoGenerateScriptRequest, GetVideoMetadataRequest
 from app.video_script.result_status import AutoGenerateTextScriptResult, ConvertToVideoMetadataResult
 from app.video_script.models import VideoMetadata
 import json
@@ -32,6 +32,9 @@ class video_script_service(ABC):
 
 class video_script_service_v1(video_script_service):
     async def generateTextScript(self, request: AutoGenerateScriptRequest):
+        """Generates a text script for a video based on the provided content and duration.
+            Using only Gemini AI.
+        """
         try:
             prompt = f"""
             Bạn là một trợ lý AI chuyên nghiệp có khả năng tạo kịch bản video dựa trên nội dung và thời gian video.
@@ -50,7 +53,43 @@ class video_script_service_v1(video_script_service):
             Không chia nhỏ khoảng thời gian ở mỗi cảnh nữa
             """
             
-            text_script = await ai_service.get_response_async(prompt)
+            text_script = await gemini_ai_service.get_response_async(prompt)
+
+            return AutoGenerateTextScriptResponse(
+                message = AutoGenerateTextScriptResult.SUCCESS.value,
+                result= AutoGenerateTextScriptResult.SUCCESS,
+                data=text_script
+            )
+        except Exception as e:
+            print(f"Error: {e}")
+            return AutoGenerateTextScriptResponse(
+                message = AutoGenerateTextScriptResult.SERVER_BUSY.value,
+                result= AutoGenerateTextScriptResult.SERVER_BUSY,
+                data=None
+            )
+    async def generateTextScript_v2(self, request: AutoGenerateScriptRequest):
+        """Generates a text script for a video based on the provided content and duration.
+            Using multiple AI models.
+        """
+        try:
+            prompt = f"""
+            Bạn là một trợ lý AI chuyên nghiệp có khả năng tạo kịch bản video dựa trên nội dung và thời gian video.
+            Hãy tạo một kịch bản video cho nội dung sau:
+            Nội dung: {request.content}
+            Thời gian video: {request.video_duration} giây
+            Số lượng cảnh trong video: {request.scene_quantity if request.scene_quantity > 0 else
+                                        "tự động xác định sao cho hợp lý với nội dung và thời gian video"}
+            mỗi cảnh gồm các thông tin:
+            - thời điểm bắt đầu và kết thúc
+            - Lời thoại
+            - Mô tả về ảnh nền cho ảnh này
+            - Mô tả về nhạc nền cho cảnh này
+            Hãy đảm bảo rằng kịch bản video được tạo ra có cấu trúc rõ ràng và
+            dễ hiểu và mỗi cảnh chỉ chứa 1 mô tả cho ảnh nền, nhạc nền và lời thoại.
+            Không chia nhỏ khoảng thời gian ở mỗi cảnh nữa
+            """
+            
+            text_script = await ai_service_manager.get_ai_service(request.model).get_response_async(prompt)
 
             return AutoGenerateTextScriptResponse(
                 message = AutoGenerateTextScriptResult.SUCCESS.value,
@@ -150,9 +189,34 @@ class video_script_service_v1(video_script_service):
             print(f"Error parsing JSON content: {e}")
             return {}
     async def get_video_metadata(self, script: str) -> GetVideoMetadataResponse:
+        """Converts a video script into structured video metadata using Gemini AI."""
         try:
             prompt = self.create_prompt_to_convert_script_to_object(script)
-            response_text = await ai_service.get_response_async(prompt)
+            response_text = await gemini_ai_service.get_response_async(prompt)
+            
+            video_metadata_json = self.get_json_content_from_response(response_text)
+            if not video_metadata_json:
+                raise ValueError("Parsed video metadata is empty or invalid")
+            
+            video_metadata = VideoMetadata(**video_metadata_json)
+            return GetVideoMetadataResponse(
+                message=ConvertToVideoMetadataResult.SUCCESS.value,
+                result=ConvertToVideoMetadataResult.SUCCESS,
+                data=video_metadata
+            )
+        except Exception as e:
+            print(f"Error getting video metadata: {e}")
+            return GetVideoMetadataResponse(
+                message=ConvertToVideoMetadataResult.SERVER_BUSY.value,
+                result=ConvertToVideoMetadataResult.SERVER_BUSY,
+                data=None
+            )
+    
+    async def get_video_metadata_v2(self, request: GetVideoMetadataRequest) -> GetVideoMetadataResponse:
+        """Support for multiple AI models to get video metadata from script"""
+        try:
+            prompt = self.create_prompt_to_convert_script_to_object(request.script)
+            response_text = await ai_service_manager.get_ai_service(request.model).get_response_async(prompt)
             
             video_metadata_json = self.get_json_content_from_response(response_text)
             if not video_metadata_json:

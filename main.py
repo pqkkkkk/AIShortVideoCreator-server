@@ -2,10 +2,10 @@ import uvicorn
 from fastapi import FastAPI, Depends
 from app.common import thread_pool_manager
 from app.auth.auth_service import validate_token_dependency
-from app.image import image_api
+from app.image import image_api, image_api_v2
 from app.user import user_api
 from app.music_track import music_api
-from app.video_script import video_script_api
+from app.video_script import video_script_api, video_script_api_v2
 from app.video import video_api, video_api_v2
 from app.trending import trending_api
 from app.db import init_db
@@ -28,11 +28,13 @@ async def lifespan(app:FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(image_api, prefix="/api/v1", tags=["image"], dependencies=[Depends(validate_token_dependency)])
+app.include_router(image_api_v2, prefix="/api/v2", tags=["image_v2"])
 app.include_router(user_api, prefix="/api/v1", tags=["user"])
-app.include_router(music_api, prefix="/api/v1", tags=["music"], dependencies=[Depends(validate_token_dependency)])
+app.include_router(music_api, prefix="/api/v1", tags=["music"])
 app.include_router(video_script_api, prefix="/api/v1", tags=["video_script"], dependencies=[Depends(validate_token_dependency)])
+app.include_router(video_script_api_v2, prefix="/api/v2", tags=["video_script_v2"], dependencies=[Depends(validate_token_dependency)])
 app.include_router(video_api, prefix="/api/v1", tags=["video"], dependencies=[Depends(validate_token_dependency)])
-app.include_router(video_api_v2, prefix="/api/v2", tags=["video_v2"], dependencies=[Depends(validate_token_dependency)])
+app.include_router(video_api_v2, prefix="/api/v2", tags=["video_v2"])
 app.include_router(trending_api, prefix="/api/v1", tags=["trending"], dependencies=[Depends(validate_token_dependency)])
 
 app.add_middleware(
