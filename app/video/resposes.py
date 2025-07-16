@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from .models import Video
+from .models import Video, VideoStatisticsInfo
 
 class CreateVideoResponse(BaseModel):
     public_id: str
@@ -15,6 +15,23 @@ class GetVideoByIdResponse(BaseModel):
     video_data: Video
     message: str
     status_code: int
+
+class VideoCountStatisticsItem(BaseModel):
+    time: str  # e.g., "2023-10-01"
+    count: int  # Number of videos uploaded on that day
+class GetVideoCountStatisticsResponse(BaseModel):
+    timely_video_count: list[VideoCountStatisticsItem]
+    time_unit: str
+    time_range: str
+    status_code: int
+    message: str
+
+class AllVideoStatisticsResponse(BaseModel):
+    statistics_info: VideoStatisticsInfo
+    total_youtube_uploaded_videos: int
+    total_videos: int
+    status_code: int
+    message: str
 
 class GetAllVideosResponse(BaseModel):
     items : list[Video]
@@ -37,3 +54,4 @@ class UploadVideoToYoutubeResponse(BaseModel):
     status_code: int
     youtube_video_id: str = None
     youtube_video_url: str = None
+

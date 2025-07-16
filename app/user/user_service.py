@@ -7,11 +7,12 @@ from .responses import SignInResponse, SignUpResponse, SignInToYoutubeResponse, 
 import traceback
 import bcrypt
 from app.auth import auth_service
-from app.external_service.external_platform.Youtube import youtube_service
+from app.external_service.external_platform.Youtube import youtube_service, youtube_service_async
 from typing import List, Dict
 from app.video.models import Video, UploadInfo
 from app.external_service.external_platform.Youtube.models import StatisticInfo
 from datetime import datetime
+from fastapi import status
 
 class user_service(ABC):
     @abstractmethod
@@ -31,38 +32,42 @@ class user_service_v1(user_service):
             user = await user_dao.get_user(username)
 
             if not user:
-                return SignInResponse(status=SignInResult.USER_NOT_FOUND,
-                                       message="User not found",
-                                        access_token="")
+                return SignInResponse(result=SignInResult.USER_NOT_FOUND,
+                                    status_code = status.HTTP_404_NOT_FOUND,
+                                    message= SignInResult.USER_NOT_FOUND.value,
+                                    access_token="")
             elif not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-                return SignInResponse(status=SignInResult.INVALID_PASSWORD,
-                                       message="Invalid password",
-                                       access_token="")
+                return SignInResponse(result=SignInResult.WRONG_PASSWORD,
+                                    status_code= status.HTTP_404_NOT_FOUND,
+                                    message= SignInResult.WRONG_PASSWORD.value,
+                                    access_token="")
             else:
                 token = auth_service.create_access_token(data={"sub": user.username})
-                return SignInResponse(status=SignInResult.SUCCESS,
-                                       message="Sign in successful",
-                                       username= user.username,
-                                       access_token=token)
+                return SignInResponse(result=SignInResult.SUCCESS,
+                                    status_code= status.HTTP_200_OK,
+                                    message= SignInResult.SUCCESS.value,
+                                    username= user.username,
+                                    access_token=token)
         except Exception as e:
             print(f"Error during sign in: {e}")
-            return SignInResponse(status=SignInResult.UNKNOWN_ERROR,
-                                   message="An unknown error occurred",
-                                    username="",
-                                   access_token="")
+            return SignInResponse(result=SignInResult.UNKNOWN_ERROR,
+                                status_code= status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                message= SignInResult.UNKNOWN_ERROR.value,
+                                username="",
+                                access_token="")
         
     def sign_in_to_youtube(self, redirect_uri: str) -> SignInToYoutubeResponse:
         try:
-            auth_url = youtube_service.get_authorization_url(redirect_uri=redirect_uri)
+            auth_url = youtube_service_async.get_authorization_url(redirect_uri=redirect_uri)
             return SignInToYoutubeResponse(auth_url=auth_url, status_code=200)
         except Exception as e:
             print(f"Error during YouTube sign in: {e}")
             return SignInToYoutubeResponse(auth_url="", status_code=500)
     
     
-    def get_youtube_access_token(self, code: str, redirect_uri: str) -> GetYoutubeAccessTokenResponse:
+    async def get_youtube_access_token(self, code: str, redirect_uri: str) -> GetYoutubeAccessTokenResponse:
         try:
-            credentials = youtube_service.get_credentials_from_code(code=code, redirect_uri=redirect_uri)
+            credentials = await youtube_service_async.get_credentials_from_code(code=code, redirect_uri=redirect_uri)
             if credentials:
                 return GetYoutubeAccessTokenResponse(access_token=credentials.token, status_code=200)
             else:
@@ -89,18 +94,3 @@ class user_service_v1(user_service):
             print(f"Error during sign up: {e}")
             traceback.print_exc()
             return SIgnUpResult.UNKNOWN_ERROR
-        
-    async def statistic(self, userId) -> List[StatisticInfo]: 
-        videos = await Video.find(Video.userId == userId).to_list()
-        print(videos)
-        statisticInfos = []
-        for video in videos:
-            upload_infos = video.uploaded.get("youtube")
-            if not upload_infos:
-                raise ValueError(f"Video {video.id} chưa có thông tin upload youtube")
-            
-            for upload_info in upload_infos:
-                info = youtube_service.getStatisticInfo(upload_info.videoId)
-                statisticInfos.append(info) 
-                    
-        return statisticInfos

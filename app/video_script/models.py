@@ -25,6 +25,8 @@ class Scene(BaseModel):
     end_time: float
     text: str
     background_image: str
+    background_image_description: str
     background_music: str
+    background_music_description: str
 class VideoMetadata(BaseModel):
     scenes: list[Scene]

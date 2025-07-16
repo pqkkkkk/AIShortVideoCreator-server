@@ -9,7 +9,7 @@ api_router = APIRouter()
 
 @api_router.post("/image/generate", response_model=GenerateImageResponse)
 async def generate_image(request: GenerateImageRequest):
-    response = await image_service.get_image_from_ai(request)
+    response = await image_service.get_image_from_ai_v2(request)
 
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=response.message)

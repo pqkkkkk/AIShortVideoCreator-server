@@ -2,10 +2,11 @@ from pydantic import BaseModel
 from .result_status import SignInResult, SIgnUpResult
 
 class SignInResponse(BaseModel):
-    access_token: str
-    status: SignInResult
-    message: str
-    username: str
+    access_token: str  = ""
+    result: SignInResult
+    status_code: int
+    message: str = ""
+    username: str = ""
 class SignInToYoutubeResponse(BaseModel):
     auth_url: str
     status_code: int = 200

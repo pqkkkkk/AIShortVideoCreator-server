@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.external_service.ai import ai_service
+from app.external_service.ai import gemini_ai_service, ai_service_manager
 from app.external_service.storage import storage_service
 from fastapi import logger
 from app.image.responses import GenerateImageResponse
@@ -67,17 +67,67 @@ class image_service_v1(image_service):
         return image
     
     async def get_image_from_ai(self, request: GenerateImageRequest) -> GenerateImageResponse:
+        """ Using Gemini AI to generate an image based on the request content """
         try:
             prompt = f"""
-            Generate an image based on the following prompt: {request.content}
+            Generate an image based with image description: {request.content}
             Ensure the image is high quality and relevant to the prompt.
             with style: {request.style}
             with image ratio: {request.image_ratio}
                             """
             
-            image_data = ai_service.generate_image(prompt)
+            image_data = await gemini_ai_service.generate_image_async(prompt)
             if not image_data:
                 raise ValueError("No image data returned from AI service")
+        
+            
+            image_url,public_id = await storage_service.uploadImage(image_data)
+            if not image_url:
+                raise ValueError("Image upload failed, no URL returned")
+            
+            await self.insert_image_data(
+                Image(
+                    public_id=public_id,
+                    image_url=image_url,
+                )
+            )
+            return GenerateImageResponse(
+                image_url=image_url,
+                public_id=public_id,
+                status_code=200,
+                message="Image generated successfully"
+            )
+        except Exception as e:
+            logger.logger.error(f"Error generating image by AI: {str(e)}")
+            return GenerateImageResponse(
+                image_url="",
+                public_id="",
+                status_code=500,
+                message=f"Error generating image: {str(e)}"
+            )
+        
+    async def get_image_from_ai_v2(self, request: GenerateImageRequest) -> GenerateImageResponse:
+        """Support for multiple AI models """
+        try:
+            prompt = f"""
+            Generate an image based with image description: {request.content}
+            Ensure the image is high quality and relevant to the prompt.
+            with style: {request.style}
+            with image ratio: {request.image_ratio}
+                            """
+            
+            ai_service = ai_service_manager.get_ai_service(request.model)
+
+            image_data = await ai_service.generate_image_async(prompt)
+            if not image_data:
+                raise ValueError("No image data returned from AI service")
+            
+            # Convert PIL Image to bytes if needed
+            if hasattr(image_data, 'save'):  # Check if it's a PIL Image
+                import io
+                img_bytes = io.BytesIO()
+                image_data.save(img_bytes, format='PNG')
+                image_data = img_bytes.getvalue()
             
             image_url,public_id = await storage_service.uploadImage(image_data)
             if not image_url:

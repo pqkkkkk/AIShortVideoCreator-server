@@ -21,10 +21,10 @@ def get_trending_in_wikipedia(keyword: str = Query(..., description="Keyword to 
     return response
 
 @router.get("/trending/youtube", response_model=GetYoutubeTrendingResponse)
-def get_trending_in_youtube(keyword: str = Query(..., description="Keyword to filter trending items"),
+async def get_trending_in_youtube(keyword: str = Query(..., description="Keyword to filter trending items"),
                                    limit: int = Query(10, description="The maximum number of trending items to return")):
     try:
-        response = youtube_trending_service.get_trending(keyword, limit)
+        response = await youtube_trending_service.get_trending(keyword, limit)
         return  response
     except Exception as e:
         raise HTTPException(

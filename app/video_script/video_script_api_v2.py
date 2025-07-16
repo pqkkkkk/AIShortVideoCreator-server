@@ -11,18 +11,10 @@ from bs4 import BeautifulSoup
 router = APIRouter()
 
 
-@router.get("/video_script/voice", response_model=List[Voice])
-async def GetVoices(gender: str = Query(default="")):
-    return await video_script_service.getAllVoices(gender=gender)
-
-@router.get('/video_script/voice/{id}', response_model=Voice)
-async def getVoice(id):
-    return await video_script_service.getVoiceById(id=id)
-
 @router.post("/video_script", response_model=AutoGenerateTextScriptResponse)
 async def AutoGenerateVideoScript(request: AutoGenerateScriptRequest,
                                 ):
-    response = await video_script_service.generateTextScript(request=request)
+    response = await video_script_service.generateTextScript_v2(request=request)
     if response and response.result == AutoGenerateTextScriptResult.SUCCESS:
         html = markdown2.markdown(response.data)
         soup = BeautifulSoup(html, "html.parser")
@@ -39,7 +31,7 @@ async def AutoGenerateVideoScript(request: AutoGenerateScriptRequest,
 @router.post("/video_script/video_metadata", response_model=GetVideoMetadataResponse)
 async def GetVideoMetadata(request: GetVideoMetadataRequest,
                            ):
-    response = await video_script_service.get_video_metadata(request.script)
+    response = await video_script_service.get_video_metadata_v2(request)
     if response and response.result == ConvertToVideoMetadataResult.SUCCESS:
         return response
     else:

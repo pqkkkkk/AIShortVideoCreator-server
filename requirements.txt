@@ -9,6 +9,7 @@ cloudinary
 google-api-python-client
 google-auth
 google-auth-oauthlib
+google-genai
 gtts
 edge-tts
 moviepy
@@ -22,3 +23,4 @@ python-jose
 markdown2
 beautifulsoup4
 wikipedia
+python-multipart

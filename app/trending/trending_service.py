@@ -1,15 +1,15 @@
 from fastapi import HTTPException
 from .responses import GetWikipediaTrendingResponse, GetYoutubeTrendingResponse
 from .models import YoutubeTrendingItem
-from app.external_service.external_platform.Youtube import youtube_service
+from app.external_service.external_platform.Youtube import youtube_service, youtube_service_async
 import wikipedia
 
 
 
 class youtube_trending_service():
-    def get_trending(self, keyword,  limit: int = 10) -> GetYoutubeTrendingResponse:
+    async def get_trending(self, keyword,  limit: int = 10) -> GetYoutubeTrendingResponse:
         try:
-            items_from_youtube = youtube_service.getTopTrending(keyword)
+            items_from_youtube = await youtube_service_async.getTopTrending(keyword, limit)
             items = []
             for item in items_from_youtube:
                 items.append(YoutubeTrendingItem(**item.__dict__))

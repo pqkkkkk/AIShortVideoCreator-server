@@ -3,10 +3,18 @@ from typing import Dict, List
 from datetime import datetime
 from beanie import Document
 from .result_status import VideoStatus
+
+class VideoStatisticsInfo(BaseModel):
+    view_count: int = 0
+    like_count: int = 0
+    favorite_count: int = 0
+    comment_count: int = 0
+
 class UploadInfo(BaseModel):
     platform: str
     videoId: str
     uploadedAt: datetime
+    statistics_info: VideoStatisticsInfo = Field(default_factory=VideoStatisticsInfo)
 
 class Video(Document):
     public_id: str
@@ -32,10 +40,10 @@ class Scene(BaseModel):
     start_time: float
     end_time: float
     text: str
-    bg_image_public_id: str
-    bg_music_public_id: str
-    bg_image_file_index: int
-    bg_music_file_index: int
+    bg_image_public_id: str = ""
+    bg_music_public_id: str = ""
+    bg_image_file_index: int = -1
+    bg_music_file_index: int = -1
 
 
 class VideoMetadata(BaseModel):
@@ -50,6 +58,7 @@ class TextAttachment(BaseModel):
     start_time: float
     end_time: float
     font_size: int = 24
+    font_family: str = "Arial"
     color_hex: str = "#FFFFFF"
     position: Position
 
@@ -59,4 +68,4 @@ class EmojiAttachment(BaseModel):
     end_time: float
     codepoint: str
     position: Position
-    size: int
+    size: int = 50

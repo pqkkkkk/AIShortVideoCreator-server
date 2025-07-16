@@ -1,6 +1,5 @@
-from .service import YouTubeService
-from .youtube_api import router as youtube_api_router
+from .service import YouTubeService, YouTubeServiceV2
 
 
 youtube_service = YouTubeService()
-youtube_api = youtube_api_router
+youtube_service_async = YouTubeServiceV2()

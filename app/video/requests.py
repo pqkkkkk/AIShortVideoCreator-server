@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from .models import VideoMetadata, TextAttachment, EmojiAttachment
+from enum import Enum
+from typing import Literal
 
+class OrderDirection(Enum):
+    ASC = "asc"
+    DESC = "desc"
 
 class VideoFilterObject(BaseModel):
     page_size: int = 10
@@ -8,12 +13,32 @@ class VideoFilterObject(BaseModel):
     user_id: str = ""
     status: str = ""
     title: str = ""
+    order_by: str = "created_at"
+    order_direction: Literal["asc", "desc"] = "desc" 
+
+class TimeRangeStatistics(Enum):
+    LAST_7_DAYS = "last_7_days"
+    LAST_30_DAYS = "last_30_days"
+    CUSTOM = "custom"
+class TimeUnit(Enum):
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
+class GetVideoCountStatisticsRequest(BaseModel):
+    user_id: str = None
+    time_unit: str = TimeUnit.DAY.value  # e.g., "day", "week", "month"
+    time_range: str  # e.g., "last_7_days", "last_30_days", "custom"
+    start_date: str = None  # Optional for custom ranges
+    end_date: str = None  # Optional for custom ranges
+
+class AllVideoStatisticsRequest(BaseModel):
+    user_id: str = None
 
 class CreateVideoRequest(BaseModel):
-    script: str
+    script: str = ""
     title: str
     userId: str
-    voiceId: str
+    voiceId: str = "vi-VN-NamMinhNeural"
     videoMetadata: VideoMetadata
 
 class EditVideoRequest(BaseModel):
@@ -29,6 +54,6 @@ class UploadVideoToYoutubeRequest(BaseModel):
     description: str
     keyword: str
     category: str
-    privateStatus: str
+    privateStatus: str = "private"
     accessToken: str
     
