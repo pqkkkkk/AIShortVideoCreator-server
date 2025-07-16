@@ -246,4 +246,5 @@ docker run -p 8000:8000 --env-file .env ai-video-creator-server
 
 ---
 
-**Built with ❤️ using FastAPI, MongoDB, Hugging Face and Google AI**
+**⭐ If you find this project interesting, please consider giving it a star! ⭐**
+*Built with ❤️ using FastAPI, MongoDB, Hugging Face and Google AI*
