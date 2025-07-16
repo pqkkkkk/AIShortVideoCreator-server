@@ -7,6 +7,19 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
 [![Google AI](https://img.shields.io/badge/Google-Gemini%20AI-orange?style=for-the-badge&logo=google)](https://ai.google.dev/)
 [![Cloudinary](https://img.shields.io/badge/Cloudinary-Media%20CDN-blue?style=for-the-badge&logo=cloudinary)](https://cloudinary.com/)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Transformers-yellow?style=for-the-badge&logo=huggingface)](https://huggingface.co/)
+
+## Contents
+- [🚀 Overview](#-overview)
+- [✨ Key Features](#-key-features)
+- [🏗️ System Architecture](#️-system-architecture)
+- [🛠️ Technology Stack](#️-technology-stack)
+- [📁 Project Structure](#-project-structure)
+- [🚀 Quick Start](#-quick-start)
+- [📚 API Documentation](#-api-documentation)
+- [🚀 Deployment](#-deployment-1)
+- [🎯 Key Technical Achievements](#-key-technical-achievements)
+- [🔗 Links](#-links)
 
 ## 🚀 Overview
 
@@ -18,25 +31,24 @@
 
 ### 🤖 **AI-Powered Content Generation**
 - **Intelligent Script Writing**: Google Gemini AI generates engaging video scripts tailored to user topics
-- **Advanced Text-to-Speech**: Multi-language voice synthesis using Edge TTS and Google TTS
+- **Text-to-Speech**: text-to-speech by using Edge TTS and Google TTS
 - **Smart Content Curation**: AI-driven trending topic suggestions and script optimization
 
 ### 🎥 **Professional Video Production**
 - **Automated Video Assembly**: Seamlessly combines scripts, audio, images, and background music
 - **Real-time Video Editing**: Dynamic text overlays, sticker placement, and music track management
-- **Multi-format Export**: Optimized output for various social media platforms
 
-### 🔧 **Enterprise-Grade Infrastructure**
+### 🔧 **Modern Backend Architecture**
 - **Scalable Architecture**: Async FastAPI with MongoDB for high-performance data operations
 - **Cloud-Native Storage**: Cloudinary integration for global CDN and media optimization
 - **Secure Authentication**: JWT-based auth with bcrypt password hashing
 - **RESTful API Design**: Clean, documented APIs with automatic OpenAPI generation
 
 ### 📊 **Content Management & Analytics**
-- **Trending Analysis**: Real-time trending topic detection and recommendation
-- **User Dashboard**: Comprehensive video library and project management
-- **Version Control**: Track video iterations and editing history
-
+- **Trending Recommendation**: Real-time trending topic detection and recommendation
+- **Video Library**: Store and retrieve user-generated videos with metadata
+- **User Management**: Complete user registration, authentication and profile management
+- **Statistics Dashboard**: Analytics on video performance and user engagement
 ## 🏗️ System Architecture
 
 ```mermaid
@@ -46,7 +58,6 @@ graph TB
     B --> D[🤖 Google Gemini AI]
     B --> E[☁️ Cloudinary CDN]
     B --> F[🔊 Text-to-Speech Services]
-    B --> G[🎬 Video Processing Engine]
     
     subgraph "🔧 Core Services"
         H[🔐 Auth Service]
